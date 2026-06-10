@@ -21,10 +21,12 @@
     .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
     
     .tab-nav { border-bottom: 2px solid #e2e8f0; }
-    .tab-btn { padding:12px 24px; font-weight:600; font-size:15px; color:#64748b; border-bottom:3px solid transparent; transition: all 0.2s; }
+    .tab-btn { padding:12px 16px; md:padding:12px 24px; font-weight:600; font-size:14px; md:font-size:15px; color:#64748b; border-bottom:3px solid transparent; transition: all 0.2s; }
     .tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; font-weight:700; background:#f8fafc; }
     
-    #map { height: 500px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; }
+    #map { height: 400px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; }
+    @media (min-width: 1024px) { #map { height: 500px; } }
+    
     .toast { position:fixed; right:18px; top:18px; z-index:9999; background:#1e293b; color:#ffffff; padding:12px 18px; border-radius:8px; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
     #loadingOverlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,0.7); z-index:999; color:#1e293b; font-weight: 600; }
     
@@ -44,7 +46,7 @@
   <div id="loadingOverlay"><div class="text-xl"><i class="fas fa-spinner fa-spin mr-2 text-blue-600"></i>Sincronizando Banco de Dados Vesco...</div></div>
   <div id="toast" class="toast"></div>
 
-  <div id="operatorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[5000] hidden">
+  <div id="operatorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[5000] hidden p-4">
     <div class="bg-white p-6 rounded-lg max-w-sm w-full text-center space-y-4 shadow-xl border border-slate-200">
       <h3 class="text-xl font-bold text-slate-800"><i class="fas fa-user-check mr-2 text-blue-600"></i>Identificação do Operador</h3>
       <p class="text-sm text-slate-500">Insira suas credenciais de operação para iniciar as atualizações em tempo real.</p>
@@ -53,52 +55,52 @@
     </div>
   </div>
 
-  <header class="bg-[#004f9f] text-white px-4 py-3 flex justify-between items-center shadow-md">
-    <div class="flex items-center gap-6">
+  <header class="bg-[#004f9f] text-white px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
+    <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
       <div class="flex items-center gap-2">
-        <i class="fas fa-boxes text-2xl"></i>
+        <i class="fas fa-boxes text-2xl text-cyan-300"></i>
         <span class="text-xl font-black tracking-wider">VESCO CONTROL</span>
       </div>
-      <div class="hidden lg:flex items-center gap-3 bg-[#003f80] px-3 py-1.5 rounded text-sm">
-        <span class="opacity-80"><i class="fas fa-calendar-alt mr-1"></i> Operação:</span>
+      <div class="flex items-center justify-center gap-2 bg-[#003f80] px-3 py-1.5 rounded text-sm w-full sm:w-auto">
+        <span class="opacity-80"><i class="fas fa-calendar-alt"></i></span>
         <input type="date" id="topCalendar" class="bg-white text-slate-800 font-bold rounded px-2 py-0.5 text-xs outline-none cursor-pointer" onchange="render()">
         <span class="border-l border-white/20 h-4 mx-1"></span>
-        <span id="activeOperatorDisplay" class="font-bold">Op: ---</span>
+        <span id="activeOperatorDisplay" class="font-bold text-xs truncate max-w-[120px]">Op: ---</span>
       </div>
     </div>
-    <div class="flex items-center gap-4">
-      <button onclick="stopAudioAlarm()" id="btnMute" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1 rounded text-xs flex items-center gap-1.5 animate-bounce">
-        <i class="fas fa-volume-mute"></i> Silenciar Alarme
+    <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-white/10 sm:border-t-0 pt-2 sm:pt-0">
+      <button onclick="stopAudioAlarm()" id="btnMute" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded text-xs items-center gap-1.5 animate-bounce">
+        <i class="fas fa-volume-mute"></i> Silenciar
       </button>
-      <div class="flex items-center gap-1.5 text-sm bg-white/10 px-3 py-1.5 rounded font-medium">
+      <div class="flex items-center gap-1.5 text-xs sm:text-sm bg-white/10 px-3 py-1.5 rounded font-medium">
         <span class="text-base">🇧🇷</span> Horário de Brasília
       </div>
-      <div id="clock" class="text-lg font-bold font-mono bg-white/10 px-3 py-1 rounded"></div>
+      <div id="clock" class="text-base sm:text-lg font-bold font-mono bg-white/10 px-3 py-1 rounded"></div>
     </div>
   </header>
 
-  <div class="bg-white tab-nav flex px-4 shadow-sm justify-between items-center">
-    <div class="flex">
-      <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active"><i class="fas fa-pallet mr-2"></i>Separação</button>
-      <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot mr-2"></i>Logística</button>
+  <div class="bg-white tab-nav flex flex-col md:flex-row shadow-sm justify-between items-stretch md:items-center p-2 md:p-0 gap-2">
+    <div class="flex justify-center md:justify-start">
+      <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active flex-1 md:flex-none text-center"><i class="fas fa-pallet mr-2"></i>Separação</button>
+      <button onclick="switchTab('logistica')" id="main-log" class="tab-btn flex-1 md:flex-none text-center"><i class="fas fa-map-location-dot mr-2"></i>Logística</button>
     </div>
-    <div class="flex items-center gap-2 px-4">
-      <input id="search" class="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-md text-sm w-64 outline-none focus:border-blue-500" placeholder="Buscar pedido ou cliente..." oninput="render()">
-      <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-md text-sm transition-colors" onclick="load()"><i class="fas fa-sync-alt mr-1"></i>Atualizar</button>
+    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 px-2 md:px-4 pb-1 md:pb-0">
+      <input id="search" class="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-md text-sm w-full sm:w-64 outline-none focus:border-blue-500" placeholder="Buscar pedido ou cliente..." oninput="render()">
+      <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 md:py-1.5 rounded-md text-sm transition-colors w-full sm:w-auto flex items-center justify-center gap-1" onclick="load()"><i class="fas fa-sync-alt"></i> Atualizar</button>
     </div>
   </div>
 
-  <main class="p-4 md:p-6 flex-grow">
+  <main class="p-3 md:p-6 flex-grow">
     
     <section id="view-separacao" class="space-y-4">
-      <div class="card p-4">
+      <div class="card p-3 md:p-4">
         <div class="flex gap-2 border-b border-slate-200 pb-3 mb-4">
           <button id="sub-fila" onclick="switchSubTab('fila')" class="bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm">Fila de Triagem</button>
           <button id="sub-pend" onclick="switchSubTab('pendencias')" class="bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200">Pendências</button>
         </div>
 
-        <div id="subview-fila" class="overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+        <div id="subview-fila" class="overflow-x-auto rounded-md border border-slate-100">
+          <table class="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
                 <th class="p-3">Status</th>
@@ -114,8 +116,8 @@
           </table>
         </div>
 
-        <div id="subview-pendencias" class="hidden overflow-x-auto">
-          <table class="w-full text-left border-collapse">
+        <div id="subview-pendencias" class="hidden overflow-x-auto rounded-md border border-slate-100">
+          <table class="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
                 <th class="p-3">Pedido #</th>
@@ -133,9 +135,9 @@
     <section id="view-logistica" class="hidden">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
         
-        <div class="card p-4 lg:col-span-3 overflow-x-auto">
+        <div class="card p-3 md:p-4 lg:col-span-3 overflow-x-auto order-2 lg:order-1 rounded-md border border-slate-100">
           <h3 class="font-bold text-slate-800 mb-3 text-base flex items-center gap-2"><i class="fas fa-list-check text-blue-600"></i> Manifesto de Despacho Técnico</h3>
-          <table class="w-full text-left border-collapse">
+          <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr class="border-b border-slate-200 text-slate-500 font-bold text-xs bg-slate-50 uppercase">
                 <th class="p-3">Pedido #</th>
@@ -149,15 +151,15 @@
           </table>
         </div>
 
-        <div class="card p-4 lg:col-span-2 flex flex-col justify-between relative">
+        <div class="card p-3 md:p-4 lg:col-span-2 flex flex-col justify-between order-1 lg:order-2 relative">
           <div class="mb-3">
             <h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i class="fas fa-earth-americas text-emerald-600"></i> Roteirização Urbana Real</h3>
             <p class="text-xs text-slate-400">Afinetes plotados dinamicamente com base nas vias urbanas mapeadas.</p>
           </div>
-          <div class="relative">
+          <div class="relative w-full">
             <div id="map"></div>
             
-            <div class="absolute bottom-4 right-4 z-[1000] summary-box text-xs space-y-1.5 w-48 text-slate-700">
+            <div class="absolute bottom-2 right-2 sm:bottom-4 sm:right-4 z-[1000] summary-box text-[11px] sm:text-xs space-y-1 sm:space-y-1.5 w-40 sm:w-48 text-slate-700">
               <div class="font-bold text-slate-900 border-b border-slate-200 pb-1 mb-1 text-center">Resumo da Frota</div>
               <div class="flex justify-between items-center"><span><span class="status-dot bg-cyan-400 mr-1.5"></span>A Separar:</span><span class="font-bold" id="sum-separar">0</span></div>
               <div class="flex justify-between items-center"><span><span class="status-dot bg-emerald-400 mr-1.5"></span>Em Separação:</span><span class="font-bold" id="sum-processo">0</span></div>
@@ -265,14 +267,13 @@
       });
     }
 
-    // SALVA O HORÁRIO MANUAL DIGITADO DIRETAMENTE NA PLANILHA
     function updateAlarmTimeJsonp(id, timeValue) {
       if (!timeValue) return;
       showLoading(true);
       const url = `${API}?action=updateStatus&id=${id}&alarme=${encodeURIComponent(timeValue)}&operador=${encodeURIComponent(currentOperator)}`;
       jsonpFetch(url, function(err, resp){
         showLoading(false);
-        showToast(`Horário Limite do Pedido #${id} definido para ${timeValue}`);
+        showToast(`Alarme do Pedido #${id} alterado`);
         load();
       });
     }
@@ -307,8 +308,6 @@
       orders.forEach(o => {
         const st = String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim();
         let limitTime = String(o.alarme || o.ALARME || '').trim();
-        
-        // Limpa strings com datas completas se o Apps script enviar objeto Date bruto
         if (limitTime.includes('T')) limitTime = limitTime.split('T')[1].substring(0,5);
         
         if ((st === 'a separar' || st === 'em separação' || st === 'em separacao' || st === '' || st.includes('pronto')) && limitTime && limitTime.includes(':')) {
@@ -385,12 +384,10 @@
                   </span>
                 </td>
                 <td class="p-3 font-black text-slate-900 text-base">#${numero}</td>
-                
                 <td class="p-3 text-center">
                   <input type="time" class="bg-slate-50 text-slate-800 font-bold font-mono border border-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-blue-500 text-center" 
                     value="${horarioAlarme}" onchange="updateAlarmTimeJsonp('${id}', this.value)">
                 </td>
-                
                 <td class="p-3 text-center">
                   <span class="bg-slate-100 text-[#004f9f] border border-slate-300 px-3 py-1.5 rounded-md font-mono font-black text-base tracking-wide shadow-sm inline-block">
                     <i class="far fa-calendar-check mr-1.5 text-blue-600"></i>${previsãoVisual}
@@ -439,12 +436,10 @@
           return `
             <tr id="row-pedido-${id}" class="hover:bg-slate-50 text-slate-700 transition-colors">
               <td class="p-3 font-bold text-slate-900 text-base">#${numero}</td>
-              
               <td class="p-3 text-center">
                 <input type="time" class="bg-slate-50 text-slate-800 font-bold font-mono border border-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-blue-500 text-center" 
                   value="${horarioAlarme}" onchange="updateAlarmTimeJsonp('${id}', this.value)">
               </td>
-              
               <td class="p-3">
                 <div class="font-bold text-slate-900">${escapeHtml(cliente)}</div>
                 <div class="text-xs text-slate-400 font-mono mt-0.5">${escapeHtml(endereco)}</div>
@@ -522,6 +517,7 @@
       if(which === 'logistica') { setTimeout(() => map.invalidateSize(), 200); }
     }
 
+    // Corrigido comportamento visual do toggle de sub-abas mobile
     function switchSubTab(name){
       document.getElementById('subview-fila').classList.toggle('hidden', name !== 'fila');
       document.getElementById('subview-pendencias').classList.toggle('hidden', name !== 'pendencias');
