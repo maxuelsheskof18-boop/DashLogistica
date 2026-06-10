@@ -5,7 +5,64 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Vesco Control — Sistema Operacional Integrado</title>
   
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmF2R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmQzZWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNGY5ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSJ1cmwoI2ZhdkdyYWQpIi8+CiAgPHBhdGggZD0iTTEyMCAxODAgSDMyMCBNMTIwIDI2MCBIMzkyIE0xMjAgMzQwIEgyODAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBhdGggZD0iTTMwIDQyIEg5MCBNMzAgNjIgSDc1IE0zMCA4MiBIMDUiIHN0cm9rZT0idXJsKCNsb2dvR3JhZCkiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iNzgiIGN5PSI4MiIgcj0iMTEiIGZpbGw9IiMyMmQzZWUiLz4KICA8L2c+CiAgPHRleHQgeD0iMTYwIiB5PSI3MCIgZm9udC1mYW1pbHk9IidJbnRlcicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iI2ZmZmZmZiIgbGV0dGVyLXNwYWNpbmc9IjMiPlZFU0NPMC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMTEyIiBmb250LWZhbWlseT0iJ0ludGVyicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjdhMCIgZmlsbD0iIzIyZDNlZSIgbGV0dGVyLXNwYWNpbmc9IjUiPkNPTlRST0w8L3RleHQ+Cjwvc3ZnPg==" class="h-9 w-auto" alt="Vesco Control Logo" />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmF2R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmQzZWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNGY5ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSJ1cmwoI2ZhdkdyYWQpIi8+CiAgPHBhdGggZD0iTTEyMCAxODAgSDMyMCBNMTIwIDI2MCBIMzkyIE0xMjAgMzQwIEgyODAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iMzQwIiByPSI0NSIgZmlsbD0iIzIyZDNlZSIvPgo8L3N2Zz4=">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { background:#f0f2f5; color:#1e293b; font-family:Inter,system-ui,Arial; }
+    .card { background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); }
+    
+    /* Status Coloridos */
+    .st-a-separar { background:#cfffff; color:#005577; }
+    .st-em-separacao { background:#cfffd5; color:#006622; }
+    .st-pronto { background:#ffe8cc; color:#995500; }
+    .st-entregue { background:#e2e8f0; color:#475569; }
+    
+    .status-pill { padding:6px 12px; border-radius:9999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px; }
+    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    
+    .tab-nav { border-bottom: 2px solid #e2e8f0; }
+    .tab-btn { padding:12px 16px; md:padding:12px 24px; font-weight:600; font-size:14px; md:font-size:15px; color:#64748b; border-bottom:3px solid transparent; transition: all 0.2s; }
+    .tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; font-weight:700; background:#f8fafc; }
+    
+    #map { height: 400px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; }
+    @media (min-width: 1024px) { #map { height: 500px; } }
+    
+    .toast { position:fixed; right:18px; top:18px; z-index:9999; background:#1e293b; color:#ffffff; padding:12px 18px; border-radius:8px; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    #loadingOverlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,0.7); z-index:999; color:#1e293b; font-weight: 600; }
+    
+    .summary-box { background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+    /* Alarme Visual Animado */
+    @keyframes blink-red {
+      0% { background-color: rgba(239, 68, 68, 0.08); }
+      50% { background-color: rgba(239, 68, 68, 0.25); }
+      100% { background-color: rgba(239, 68, 68, 0.08); }
+    }
+    .row-alarm-active { animation: blink-red 1.5s infinite; border-left: 4px solid #ef4444 !important; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <div id="loadingOverlay"><div class="text-xl"><i class="fas fa-spinner fa-spin mr-2 text-blue-600"></i>Sincronizando Banco de Dados Vesco...</div></div>
+  <div id="toast" class="toast"></div>
+
+  <div id="operatorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[5000] hidden p-4">
+    <div class="bg-white p-6 rounded-lg max-w-sm w-full text-center space-y-4 shadow-xl border border-slate-200">
+      <h3 class="text-xl font-bold text-slate-800"><i class="fas fa-user-check mr-2 text-blue-600"></i>Identificação do Operador</h3>
+      <p class="text-sm text-slate-500">Insira suas credenciais de operação para iniciar as atualizações e ativar o sistema de som.</p>
+      <input type="text" id="operatorNameInput" class="w-full bg-slate-50 px-3 py-2 rounded border border-slate-300 text-base text-center font-semibold outline-none focus:border-blue-500" placeholder="Nome do Operador">
+      <button onclick="saveOperator()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded text-base font-bold transition-colors shadow-md">Acessar Painel</button>
+    </div>
+  </div>
+
+  <header class="bg-[#004f9f] text-white px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
+    <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
+      
+      <div class="h-10 w-auto flex items-center justify-center sm:justify-start">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgMTQwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG9nb0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyZDNlZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzhiZGZ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjI4IiBmaWxsPSIjMDAzZjgwIiAvPgogICAgPHBhdGggZD0iTTMwIDQyIEg5MCBNMzAgNjIgSDc1IE0zMCA4MiBIMDUiIHN0cm9rZT0idXJsKCNsb2dvR3JhZCkiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iNzgiIGN5PSI4MiIgcj0iMTEiIGZpbGw9IiMyMmQzZWUiLz4KICA8L2c+CiAgPHRleHQgeD0iMTYwIiB5PSI3MCIgZm9udC1mYW1pbHk9IidJbnRlcicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iI2ZmZmZmZiIgbGV0dGVyLXNwYWNpbmc9IjMiPlZFU0NPMC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMTEyIiBmb250LWZhbWlseT0iJ0ludGVyicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjdhMCIgZmlsbD0iIzIyZDNlZSIgbGV0dGVyLXNwYWNpbmc9IjUiPkNPTlRST0w8L3RleHQ+Cjwvc3ZnPg==" class="h-9 w-auto" alt="Vesco Control Logo" />
       </div>
 
       <div class="flex items-center justify-center gap-2 bg-[#003f80] px-3 py-1.5 rounded text-sm w-full sm:w-auto">
@@ -17,7 +74,7 @@
     </div>
     <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-white/10 sm:border-t-0 pt-2 sm:pt-0">
       <button onclick="stopAudioAlarm()" id="btnMute" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded text-xs items-center gap-1.5 animate-bounce shadow-md">
-        <i class="fas fa-volume-mute"></i> Silenciar
+        <i class="fas fa-volume-mute"></i> Silenciar Som
       </button>
       <div class="flex items-center gap-1.5 text-xs sm:text-sm bg-white/10 px-3 py-1.5 rounded font-medium">
         <span class="text-base">🇧🇷</span> Horário de Brasília
@@ -128,8 +185,7 @@
     let map, markerGroup;
     let audioCtx = null;
     let alarmMuted = false;
-    let soundLoopInterval = null; 
-    let snoozeList = {}; // Estrutura para salvar o carimbo de tempo do adiamento temporário
+    let soundLoopInterval = null; // Gerenciador do loop do som intermitente
 
     const dBr = new Date();
     const offset = dBr.getTimezoneOffset();
@@ -141,12 +197,15 @@
         document.getElementById('operatorModal').classList.remove('hidden');
       } else {
         document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`;
+        // Ativa o contexto de áudio se reabrir com operador salvo
         initAudioContext();
       }
     }
 
     function initAudioContext() {
-      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
     }
 
     function saveOperator() {
@@ -157,7 +216,7 @@
         document.getElementById('operatorModal').classList.add('hidden');
         document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`;
         showToast(`Operador autenticado com sucesso.`);
-        initAudioContext(); 
+        initAudioContext(); // ATIVAÇÃO CRÍTICA DO ÁUDIO PELO CLIQUE DO USUÁRIO
       }
     }
 
@@ -216,7 +275,6 @@
       jsonpFetch(url, function(err, resp){
         showLoading(false);
         showToast(`Pedido #${id} alterado para ${status}`);
-        if(snoozeList[id]) delete snoozeList[id]; // Limpa histórico do snooze ao concluir
         stopAudioAlarm(); 
         load();
       });
@@ -229,60 +287,48 @@
       jsonpFetch(url, function(err, resp){
         showLoading(false);
         showToast(`Alarme do Pedido #${id} alterado`);
-        if(snoozeList[id]) delete snoozeList[id]; // Limpa caso mude o horário base
         load();
       });
     }
 
+    // DISPARADOR DE ÁUDIO NATIVO ROBUSTO COM FILTRO DE CONTEXTO SUSPENSO
     function playBeepSound() {
       if (alarmMuted || !audioCtx) return;
       try {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // Se o navegador suspendeu o canal por inatividade, força a reativação
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(950, audioCtx.currentTime); 
+        osc.frequency.setValueAtTime(950, audioCtx.currentTime); // Som eletrônico limpo e perceptível
         gain.gain.setValueAtTime(0.4, audioCtx.currentTime); 
         osc.start();
         osc.stop(audioCtx.currentTime + 0.2); 
-      } catch(e) {}
+      } catch(e) { console.error("Falha ao forçar áudio nativo: ", e); }
     }
 
     function stopAudioAlarm() {
       alarmMuted = true;
       document.getElementById('btnMute').classList.add('hidden');
-      document.getElementById('snoozeModal').classList.add('hidden');
       if (soundLoopInterval) {
         clearInterval(soundLoopInterval);
         soundLoopInterval = null;
       }
+      // Reativa o canal de escuta após 40 segundos caso surjam novos atrasos
       setTimeout(() => { alarmMuted = false; }, 40000); 
-    }
-
-    // FUNÇÃO QUE EXECUTA O ADIAMENTO (SNOOZE) POR 10 MINUTOS
-    function snoozeActiveAlarm(orderId) {
-      const now = new Date();
-      snoozeList[orderId] = now.getTime() + (10 * 60 * 1000); // Salva o tempo futuro limite (10 min)
-      showToast(`Pedido #${orderId} adiado por 10 minutos.`);
-      stopAudioAlarm(); // Desliga o som e fecha o modal imediatamente
-      alarmMuted = false; // Permite que outros pedidos possam apitar se estourarem o tempo
     }
 
     function checkTimeAlarms(horaBrasiliaStr) {
       if (!orders || orders.length === 0) return;
       const [currentHH, currentMM] = horaBrasiliaStr.split(':');
       const currentVal = parseInt(currentHH) * 60 + parseInt(currentMM);
-      const nowTimestamp = new Date().getTime();
-      
       let triggerSound = false;
-      let criticalOrderId = null;
-      let criticalOrderNum = '';
 
       orders.forEach(o => {
-        const id = o.id || o.ID || '';
-        const num = o.numero || o.NUMERO || '';
         const st = String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim();
         let limitTime = String(o.alarme || o.ALARME || '').trim();
         if (limitTime.includes('T')) limitTime = limitTime.split('T')[1].substring(0,5);
@@ -291,42 +337,28 @@
           const parts = limitTime.split(':');
           const limitVal = parseInt(parts[0]) * 60 + parseInt(parts[1]);
 
-          const rowEl = document.getElementById(`row-pedido-${id}`);
+          const rowEl = document.getElementById(`row-pedido-${o.id || o.ID}`);
           if (currentVal >= limitVal) {
-            // VERIFICA SE O PEDIDO ESTÁ ADIADO E SE O TEMPO DO SNOOZE JÁ ACABOU
-            if (snoozeList[id] && nowTimestamp < snoozeList[id]) {
-              if (rowEl) rowEl.classList.remove('row-alarm-active');
-              return; // Ignora o alarme temporariamente
-            }
-
             if (rowEl) rowEl.classList.add('row-alarm-active'); 
             triggerSound = true;
-            criticalOrderId = id;
-            criticalOrderNum = num;
           } else {
             if (rowEl) rowEl.classList.remove('row-alarm-active');
           }
         }
       });
 
+      // GERENCIADOR DE LOOP DO SOM INTERMITENTE (Bipa a cada 2 segundos até silenciar ou concluir)
       if (triggerSound && !alarmMuted) {
         document.getElementById('btnMute').classList.remove('hidden');
-        
-        // EXIBE O MODAL CENTRALIZADO NA TELA COM O BOTÃO ADIAR
-        const modal = document.getElementById('snoozeModal');
-        document.getElementById('modalOrderNum').innerText = criticalOrderNum;
-        document.getElementById('btnSnoozeAction').setAttribute('onclick', `snoozeActiveAlarm('${criticalOrderId}')`);
-        modal.classList.remove('hidden');
-
         if (!soundLoopInterval) {
-          playBeepSound(); 
+          playBeepSound(); // Primeiro bip imediato
           soundLoopInterval = setInterval(playBeepSound, 2000);
         }
       } else if (!triggerSound && soundLoopInterval) {
+        // Se os pedidos foram limpos/concluídos, desliga o loop automaticamente
         clearInterval(soundLoopInterval);
         soundLoopInterval = null;
         document.getElementById('btnMute').classList.add('hidden');
-        document.getElementById('snoozeModal').classList.add('hidden');
       }
     }
 
@@ -469,6 +501,46 @@
       }
     }
 
+    function moverParaPendenciaPrompt(id) {
+      const motivo = prompt('Insira a especificação técnica da pendência:');
+      if (motivo) updateStatusJsonp(id, 'Pendente', motivo);
+    }
+
+    function initMap() {
+      map = L.map('map').setView([-23.55052, -46.633308], 11); 
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      markerGroup = L.layerGroup().addTo(map);
+    }
+
+    function plotMapMarkers(orderList) {
+      if(!markerGroup) return;
+      markerGroup.clearLayers();
+      
+      orderList.forEach(o => {
+        const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || '';
+        const numero = o.numero || o.NUMERO || '';
+        const cliente = o.cliente_nome || o.CLIENTE_NOME || '';
+
+        if(endereco && endereco !== 'Endereço não disponível') {
+          const latOffset = (Math.random() - 0.5) * 0.14;
+          const lngOffset = (Math.random() - 0.5) * 0.14;
+          const lat = -23.55052 + latOffset;
+          const lng = -46.633308 + lngOffset;
+
+          L.marker([lat, lng]).addTo(markerGroup)
+           .bindPopup(`
+              <div style="font-family: Arial, sans-serif; font-size:12px; color:#333;">
+                <b style="color:#004f9f; font-size:13px;">Pedido #${numero}</b><br>
+                <span style="color:#666;"><b>Cliente:</b> ${escapeHtml(cliente)}</span><br>
+                <span style="display:block; margin-top:4px; font-size:11px; color:#888; background:#f4f4f5; padding:4px; border-radius:4px;"><i class="fas fa-location-dot"></i> ${escapeHtml(endereco)}</span>
+              </div>
+           `);
+        }
+      });
+    }
+
     function switchTab(which){
       document.getElementById('view-separacao').classList.toggle('hidden', which !== 'separacao');
       document.getElementById('view-logistica').classList.toggle('hidden', which !== 'logistica');
@@ -484,28 +556,6 @@
       document.getElementById('sub-pend').className = name==='pendencias' ? 'bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm' : 'bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200';
     }
 
-    function initMap() {
-      map = L.map('map').setView([-23.55052, -46.633308], 11); 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-      markerGroup = L.layerGroup().addTo(map);
-    }
-
-    function plotMapMarkers(orderList) {
-      if(!markerGroup) return;
-      markerGroup.clearLayers();
-      orderList.forEach(o => {
-        const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || '';
-        const numero = o.numero || o.NUMERO || '';
-        const cliente = o.cliente_nome || o.CLIENTE_NOME || '';
-        if(endereco && endereco !== 'Endereço não disponível') {
-          const latOffset = (Math.random() - 0.5) * 0.14;
-          const lngOffset = (Math.random() - 0.5) * 0.14;
-          L.marker([-23.55052 + latOffset, -46.633308 + lngOffset]).addTo(markerGroup)
-           .bindPopup(`<b>Pedido #${numero}</b><br><span>${escapeHtml(cliente)}</span>`);
-        }
-      });
-    }
-
     function escapeHtml(t){ if(!t) return ''; return String(t).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 
     startClock();
@@ -513,26 +563,5 @@
     initMap();
     load();
   </script>
-
-  <div id="snoozeModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[9999] hidden p-4">
-    <div class="bg-white border-2 border-red-500 p-8 rounded-xl max-w-md w-full text-center space-y-5 shadow-2xl animate-pulse">
-      <div class="text-red-500 text-6xl">
-        <i class="fas fa-bell-transform fas fa-clock animate-bounce"></i>
-      </div>
-      <h3 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Estouro de Prazo Limite!</h3>
-      <p class="text-base text-slate-600 font-medium">
-        O pedido crítico <span id="modalOrderNum" class="text-red-600 font-extrabold text-lg">#---</span> ultrapassou o horário planejado de expedição.
-      </p>
-      <div class="flex flex-col gap-2 pt-2">
-        <button id="btnSnoozeAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg text-base font-black transition-all shadow-md flex items-center justify-center gap-2">
-          <i class="fas fa-snooze fas fa-hourglass-start"></i> ADIAR POR 10 MINUTOS
-        </button>
-        <button onclick="stopAudioAlarm()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-lg text-sm font-bold transition-all">
-          Apenas Silenciar
-        </button>
-      </div>
-    </div>
-  </div>
-
 </body>
 </html>
