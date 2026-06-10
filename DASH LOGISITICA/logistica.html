@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Vesco Control — Sistema Operacional Integrado</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { background:#f0f2f5; color:#1e293b; font-family:Inter,system-ui,Arial; }
+    .card { background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); }
+    
+    /* Status Coloridos */
+    .st-a-separar { background:#cfffff; color:#005577; }
+    .st-em-separacao { background:#cfffd5; color:#006622; }
+    .st-pronto { background:#ffe8cc; color:#995500; }
+    .st-entregue { background:#e2e8f0; color:#475569; }
+    
+    .status-pill { padding:6px 12px; border-radius:9999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px; }
+    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    
+    .tab-nav { border-bottom: 2px solid #e2e8f0; }
+    .tab-btn { padding:12px 24px; font-weight:600; font-size:15px; color:#64748b; border-bottom:3px solid transparent; transition: all 0.2s; }
+    .tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; font-weight:700; background:#f8fafc; }
+    
+    #map { height: 500px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; }
+    .toast { position:fixed; right:18px; top:18px; z-index:9999; background:#1e293b; color:#ffffff; padding:12px 18px; border-radius:8px; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    #loadingOverlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,0.7); z-index:999; color:#1e293b; font-weight: 600; }
+    
+    .summary-box { background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+
+    /* Alarme Visual Animado */
+    @keyframes blink-red {
+      0% { background-color: rgba(239, 68, 68, 0.08); }
+      50% { background-color: rgba(239, 68, 68, 0.25); }
+      100% { background-color: rgba(239, 68, 68, 0.08); }
+    }
+    .row-alarm-active { animation: blink-red 1.5s infinite; border-left: 4px solid #ef4444 !important; }
+  </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <div id="loadingOverlay"><div class="text-xl"><i class="fas fa-spinner fa-spin mr-2 text-blue-600"></i>Sincronizando Banco de Dados Vesco...</div></div>
+  <div id="toast" class="toast"></div>
+
+  <div id="operatorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[5000] hidden">
+    <div class="bg-white p-6 rounded-lg max-w-sm w-full text-center space-y-4 shadow-xl border border-slate-200">
+      <h3 class="text-xl font-bold text-slate-800"><i class="fas fa-user-check mr-2 text-blue-600"></i>Identificação do Operador</h3>
+      <p class="text-sm text-slate-500">Insira suas credenciais de operação para iniciar as atualizações em tempo real.</p>
+      <input type="text" id="operatorNameInput" class="w-full bg-slate-50 px-3 py-2 rounded border border-slate-300 text-base text-center font-semibold outline-none focus:border-blue-500" placeholder="Nome do Operador">
+      <button onclick="saveOperator()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded text-base font-bold transition-colors shadow-md">Acessar Painel</button>
+    </div>
+  </div>
+
+  <header class="bg-[#004f9f] text-white px-4 py-3 flex justify-between items-center shadow-md">
+    <div class="flex items-center gap-6">
+      <div class="flex items-center gap-2">
+        <i class="fas fa-boxes text-2xl"></i>
+        <span class="text-xl font-black tracking-wider">VESCO CONTROL</span>
+      </div>
+      <div class="hidden lg:flex items-center gap-3 bg-[#003f80] px-3 py-1.5 rounded text-sm">
+        <span class="opacity-80"><i class="fas fa-calendar-alt mr-1"></i> Operação:</span>
+        <input type="date" id="topCalendar" class="bg-white text-slate-800 font-bold rounded px-2 py-0.5 text-xs outline-none cursor-pointer" onchange="render()">
+        <span class="border-l border-white/20 h-4 mx-1"></span>
+        <span id="activeOperatorDisplay" class="font-bold">Op: ---</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-4">
+      <button onclick="stopAudioAlarm()" id="btnMute" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1 rounded text-xs flex items-center gap-1.5 animate-bounce">
+        <i class="fas fa-volume-mute"></i> Silenciar Alarme
+      </button>
+      <div class="flex items-center gap-1.5 text-sm bg-white/10 px-3 py-1.5 rounded font-medium">
+        <span class="text-base">🇧🇷</span> Horário de Brasília
+      </div>
+      <div id="clock" class="text-lg font-bold font-mono bg-white/10 px-3 py-1 rounded"></div>
+    </div>
+  </header>
+
+  <div class="bg-white tab-nav flex px-4 shadow-sm justify-between items-center">
+    <div class="flex">
+      <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active"><i class="fas fa-pallet mr-2"></i>Separação</button>
+      <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot mr-2"></i>Logística</button>
+    </div>
+    <div class="flex items-center gap-2 px-4">
+      <input id="search" class="bg-slate-50 border border-slate-300 px-3 py-1.5 rounded-md text-sm w-64 outline-none focus:border-blue-500" placeholder="Buscar pedido ou cliente..." oninput="render()">
+      <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-1.5 rounded-md text-sm transition-colors" onclick="load()"><i class="fas fa-sync-alt mr-1"></i>Atualizar</button>
+    </div>
+  </div>
+
+  <main class="p-4 md:p-6 flex-grow">
+    
+    <section id="view-separacao" class="space-y-4">
+      <div class="card p-4">
+        <div class="flex gap-2 border-b border-slate-200 pb-3 mb-4">
+          <button id="sub-fila" onclick="switchSubTab('fila')" class="bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm">Fila de Triagem</button>
+          <button id="sub-pend" onclick="switchSubTab('pendencias')" class="bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200">Pendências</button>
+        </div>
+
+        <div id="subview-fila" class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
+                <th class="p-3">Status</th>
+                <th class="p-3">Pedido #</th>
+                <th class="p-3 text-center">Limite Alarme</th>
+                <th class="p-3 text-center">Data Previsão</th>
+                <th class="p-3">Cliente</th>
+                <th class="p-3">Endereço de Destino</th>
+                <th class="p-3 text-right">Controle Operacional</th>
+              </tr>
+            </thead>
+            <tbody id="table-fila" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+          </table>
+        </div>
+
+        <div id="subview-pendencias" class="hidden overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
+                <th class="p-3">Pedido #</th>
+                <th class="p-3">Cliente</th>
+                <th class="p-3">Motivo Crítico Registrado</th>
+                <th class="p-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="table-pendencias" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-logistica" class="hidden">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        
+        <div class="card p-4 lg:col-span-3 overflow-x-auto">
+          <h3 class="font-bold text-slate-800 mb-3 text-base flex items-center gap-2"><i class="fas fa-list-check text-blue-600"></i> Manifesto de Despacho Técnico</h3>
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 font-bold text-xs bg-slate-50 uppercase">
+                <th class="p-3">Pedido #</th>
+                <th class="p-3 text-center">Limite Alarme</th>
+                <th class="p-3">Destinatário</th>
+                <th class="p-3">Condição de Acerto</th>
+                <th class="p-3 text-right">Ação Final</th>
+              </tr>
+            </thead>
+            <tbody id="table-logistica" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+          </table>
+        </div>
+
+        <div class="card p-4 lg:col-span-2 flex flex-col justify-between relative">
+          <div class="mb-3">
+            <h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i class="fas fa-earth-americas text-emerald-600"></i> Roteirização Urbana Real</h3>
+            <p class="text-xs text-slate-400">Afinetes plotados dinamicamente com base nas vias urbanas mapeadas.</p>
+          </div>
+          <div class="relative">
+            <div id="map"></div>
+            
+            <div class="absolute bottom-4 right-4 z-[1000] summary-box text-xs space-y-1.5 w-48 text-slate-700">
+              <div class="font-bold text-slate-900 border-b border-slate-200 pb-1 mb-1 text-center">Resumo da Frota</div>
+              <div class="flex justify-between items-center"><span><span class="status-dot bg-cyan-400 mr-1.5"></span>A Separar:</span><span class="font-bold" id="sum-separar">0</span></div>
+              <div class="flex justify-between items-center"><span><span class="status-dot bg-emerald-400 mr-1.5"></span>Em Separação:</span><span class="font-bold" id="sum-processo">0</span></div>
+              <div class="flex justify-between items-center"><span><span class="status-dot bg-orange-400 mr-1.5"></span>Pendências:</span><span class="font-bold" id="sum-pend">0</span></div>
+              <div class="flex justify-between items-center border-t border-slate-100 pt-1 mt-1 font-bold"><span>Total Geral:</span><span id="sum-total">0</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const API = "https://script.google.com/macros/s/AKfycbzDp2qs2S_MxDc_3afY1TurNKYEwfYKkk2cc4IliNxLiVaJuSKYyRqofOUMnhdFBjwNwg/exec";
+    let orders = [];
+    let currentOperator = localStorage.getItem('vesco_operator') || '';
+    let map, markerGroup;
+    let audioCtx = null;
+    let alarmMuted = false;
+
+    const dBr = new Date();
+    const offset = dBr.getTimezoneOffset();
+    const dataLocalSp = new Date(dBr.getTime() - (offset*60*1000)).toISOString().split('T')[0];
+    document.getElementById('topCalendar').value = dataLocalSp;
+
+    function checkOperator() {
+      if (!currentOperator) {
+        document.getElementById('operatorModal').classList.remove('hidden');
+      } else {
+        document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`;
+      }
+    }
+
+    function saveOperator() {
+      const name = document.getElementById('operatorNameInput').value.trim();
+      if(name) {
+        localStorage.setItem('vesco_operator', name);
+        currentOperator = name;
+        document.getElementById('operatorModal').classList.add('hidden');
+        document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`;
+        showToast(`Operador autenticado com sucesso.`);
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function jsonpFetch(url, cb) {
+      const cbName = '__jsonp_cb_' + Math.random().toString(36).substr(2,9);
+      window[cbName] = function(res) {
+        try { cb(null, res); } catch(e){}
+        try { delete window[cbName]; } catch(e){}
+        const s = document.getElementById(cbName); if (s) s.remove();
+      };
+      const sep = url.indexOf('?') === -1 ? '?' : '&';
+      document.head.appendChild(Object.assign(document.createElement('script'), { src: `${url}${sep}callback=${cbName}`, id: cbName }));
+    }
+
+    function showLoading(on){ document.getElementById('loadingOverlay').style.display = on ? 'flex' : 'none'; }
+    function showToast(txt){ const t=document.getElementById('toast'); t.innerText=txt; t.style.display='block'; setTimeout(()=>t.style.display='none', 3000); }
+    
+    function startClock(){ 
+      setInterval(()=> { 
+        const agora = new Date();
+        const horaBrasiliaStr = agora.toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'});
+        document.getElementById('clock').innerText = horaBrasiliaStr; 
+        checkTimeAlarms(horaBrasiliaStr);
+      }, 1000); 
+    }
+
+    function parseToDateObj(dateStr) {
+      if (!dateStr) return new Date(0);
+      if (dateStr.includes('T')) return new Date(dateStr);
+      const parts = dateStr.split(' ')[0].split('/');
+      if (parts.length === 3) return new Date(parts[2], parts[1] - 1, parts[0]);
+      return new Date(dateStr);
+    }
+
+    function formatVisualDate(dateStr) {
+      if (!dateStr) return '—';
+      const d = parseToDateObj(dateStr);
+      if (isNaN(d.getTime()) || d.getTime() === 0) return String(dateStr);
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    }
+
+    function load(){
+      showLoading(true);
+      jsonpFetch(API, function(err, resp){
+        showLoading(false);
+        if (resp && resp.success) {
+          orders = resp.data || [];
+          render();
+        }
+      });
+    }
+
+    function updateStatusJsonp(id, status, observacao = ''){
+      showLoading(true);
+      const url = `${API}?action=updateStatus&id=${id}&status=${encodeURIComponent(status)}&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(observacao)}`;
+      jsonpFetch(url, function(err, resp){
+        showLoading(false);
+        showToast(`Pedido #${id} alterado para ${status}`);
+        stopAudioAlarm(); 
+        load();
+      });
+    }
+
+    // SALVA O HORÁRIO MANUAL DIGITADO DIRETAMENTE NA PLANILHA
+    function updateAlarmTimeJsonp(id, timeValue) {
+      if (!timeValue) return;
+      showLoading(true);
+      const url = `${API}?action=updateStatus&id=${id}&alarme=${encodeURIComponent(timeValue)}&operador=${encodeURIComponent(currentOperator)}`;
+      jsonpFetch(url, function(err, resp){
+        showLoading(false);
+        showToast(`Horário Limite do Pedido #${id} definido para ${timeValue}`);
+        load();
+      });
+    }
+
+    function playBeepSound() {
+      if (alarmMuted || !audioCtx) return;
+      try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime); 
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.15); 
+      } catch(e) {}
+    }
+
+    function stopAudioAlarm() {
+      alarmMuted = true;
+      document.getElementById('btnMute').classList.add('hidden');
+      setTimeout(() => { alarmMuted = false; }, 30000); 
+    }
+
+    function checkTimeAlarms(horaBrasiliaStr) {
+      if (!orders || orders.length === 0) return;
+      const [currentHH, currentMM] = horaBrasiliaStr.split(':');
+      const currentVal = parseInt(currentHH) * 60 + parseInt(currentMM);
+      let triggerSound = false;
+
+      orders.forEach(o => {
+        const st = String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim();
+        let limitTime = String(o.alarme || o.ALARME || '').trim();
+        
+        // Limpa strings com datas completas se o Apps script enviar objeto Date bruto
+        if (limitTime.includes('T')) limitTime = limitTime.split('T')[1].substring(0,5);
+        
+        if ((st === 'a separar' || st === 'em separação' || st === 'em separacao' || st === '' || st.includes('pronto')) && limitTime && limitTime.includes(':')) {
+          const parts = limitTime.split(':');
+          const limitVal = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+
+          const rowEl = document.getElementById(`row-pedido-${o.id || o.ID}`);
+          if (currentVal >= limitVal) {
+            if (rowEl) rowEl.classList.add('row-alarm-active'); 
+            triggerSound = true;
+          } else {
+            if (rowEl) rowEl.classList.remove('row-alarm-active');
+          }
+        }
+      });
+
+      if (triggerSound && !alarmMuted) {
+        document.getElementById('btnMute').classList.remove('hidden');
+        playBeepSound();
+      }
+    }
+
+    function render(){
+      try {
+        const selectedDate = document.getElementById('topCalendar').value;
+        const searchQ = document.getElementById('search').value.toLowerCase();
+
+        let selectedDateObj = null;
+        if (selectedDate) {
+          const [y, m, d] = selectedDate.split('-');
+          selectedDateObj = new Date(y, m - 1, d);
+        }
+
+        // --- FILA DE SEPARAÇÃO ---
+        const tbodyFila = document.getElementById('table-fila');
+        const filaOrders = orders.filter(o => {
+          const st = String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim();
+          const rawDate = String(o.data_prevista || o.DATA_PREVISTA || '').trim();
+          const orderDateObj = parseToDateObj(rawDate);
+          
+          if(selectedDateObj) selectedDateObj.setHours(0,0,0,0);
+          orderDateObj.setHours(0,0,0,0);
+
+          const matchDate = !selectedDateObj || (orderDateObj.getTime() === selectedDateObj.getTime()) || 
+                            (orderDateObj.getTime() < selectedDateObj.getTime() && st !== 'pronto p/ entrega' && st !== 'entregue' && st !== 'cancelado');
+          
+          const matchStatus = st === 'a separar' || st === 'em separação' || st === 'em separacao' || st === '';
+          const numPed = String(o.numero || o.NUMERO || '');
+          const cliNome = String(o.cliente_nome || o.CLIENTE_NOME || '');
+          return matchDate && matchStatus && (numPed + cliNome).toLowerCase().includes(searchQ);
+        });
+
+        filaOrders.sort((a, b) => parseToDateObj(String(a.data_prevista || a.DATA_PREVISTA)) - parseToDateObj(String(b.data_prevista || b.DATA_PREVISTA)));
+
+        if (filaOrders.length === 0) {
+          tbodyFila.innerHTML = `<tr><td colspan="7" class="p-8 text-center text-slate-400 bg-slate-50"><i class="fas fa-box-open mr-2"></i>Nenhum pedido operacional listado.</td></tr>`;
+        } else {
+          tbodyFila.innerHTML = filaOrders.map(o => {
+            const id = o.id || o.ID || '';
+            const numero = o.numero || o.NUMERO || 'S/N';
+            const cliente = o.cliente_nome || o.CLIENTE_NOME || 'Não Informado';
+            const previsãoVisual = formatVisualDate(o.data_prevista || o.DATA_PREVISTA);
+            const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || 'Sem Endereço';
+            const statusAtual = o.status_logistica || o.STATUS_LOGISTICA || 'A Separar';
+            let horarioAlarme = String(o.alarme || o.ALARME || '').trim();
+            if (horarioAlarme.includes('T')) horarioAlarme = horarioAlarme.split('T')[1].substring(0,5);
+            const isSep = statusAtual.toLowerCase().includes('separ');
+
+            return `
+              <tr id="row-pedido-${id}" class="hover:bg-slate-50 transition-colors text-slate-700 text-base">
+                <td class="p-3">
+                  <span class="status-pill ${isSep ? 'st-em-separacao' : 'st-a-separar'}">
+                    <span class="status-dot ${isSep ? 'bg-emerald-500' : 'bg-cyan-500'}"></span>${statusAtual}
+                  </span>
+                </td>
+                <td class="p-3 font-black text-slate-900 text-base">#${numero}</td>
+                
+                <td class="p-3 text-center">
+                  <input type="time" class="bg-slate-50 text-slate-800 font-bold font-mono border border-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-blue-500 text-center" 
+                    value="${horarioAlarme}" onchange="updateAlarmTimeJsonp('${id}', this.value)">
+                </td>
+                
+                <td class="p-3 text-center">
+                  <span class="bg-slate-100 text-[#004f9f] border border-slate-300 px-3 py-1.5 rounded-md font-mono font-black text-base tracking-wide shadow-sm inline-block">
+                    <i class="far fa-calendar-check mr-1.5 text-blue-600"></i>${previsãoVisual}
+                  </span>
+                </td>
+                <td class="p-3 font-semibold text-slate-900">${escapeHtml(cliente)}</td>
+                <td class="p-3 text-sm text-slate-500 max-w-xs truncate" title="${escapeHtml(endereco)}">${escapeHtml(endereco)}</td>
+                <td class="p-3 text-right space-x-1.5 whitespace-nowrap">
+                  <button class="bg-amber-50 hover:bg-amber-100 text-amber-700 px-3 py-1.5 rounded text-xs font-bold border border-amber-200 transition-colors" onclick="moverParaPendenciaPrompt('${id}')">Pendente</button>
+                  <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors" onclick="updateStatusJsonp('${id}','Em Separação')">Iniciar</button>
+                  <button class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-xs font-bold transition-colors" onclick="updateStatusJsonp('${id}','Pronto p/ Entrega')">Concluir</button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+
+        // --- FILA DE PENDÊNCIAS ---
+        const tbodyPend = document.getElementById('table-pendencias');
+        const pendOrders = orders.filter(o => String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim() === 'pendente');
+        
+        tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhuma restrição operacional detectada.</td></tr>` : pendOrders.map(o => `
+          <tr class="text-slate-700">
+            <td class="p-3 font-bold">#${o.numero || o.NUMERO}</td>
+            <td class="p-3 font-semibold">${escapeHtml(o.cliente_nome || o.CLIENTE_NOME)}</td>
+            <td class="p-3 text-xs text-amber-700 bg-amber-50/50 rounded font-mono">${escapeHtml(o.observacao_logistica || 'Verificar pendência de doc.')}</td>
+            <td class="p-3 text-right">
+              <button class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded text-xs font-bold transition-colors" onclick="updateStatusJsonp('${o.id || o.ID}','A Separar')">Liberar Fila</button>
+            </td>
+          </tr>
+        `).join('');
+
+        // --- FILA DE LOGÍSTICA ---
+        const tbodyLog = document.getElementById('table-logistica');
+        const logOrders = orders.filter(o => String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim().includes('pronto'));
+        
+        tbodyLog.innerHTML = logOrders.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400">Nenhum manifesto pronto para expedição.</td></tr>` : logOrders.map(o => {
+          const id = o.id || o.ID || '';
+          const numero = o.numero || o.NUMERO || 'S/N';
+          const cliente = o.cliente_nome || o.CLIENTE_NOME || 'Não Informado';
+          const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || 'Sem Endereço';
+          const instrucao = o.instrucao_entrega || o.INSTRUCAO_ENTREGA || '—';
+          let horarioAlarme = String(o.alarme || o.ALARME || '').trim();
+          if (horarioAlarme.includes('T')) horarioAlarme = horarioAlarme.split('T')[1].substring(0,5);
+
+          return `
+            <tr id="row-pedido-${id}" class="hover:bg-slate-50 text-slate-700 transition-colors">
+              <td class="p-3 font-bold text-slate-900 text-base">#${numero}</td>
+              
+              <td class="p-3 text-center">
+                <input type="time" class="bg-slate-50 text-slate-800 font-bold font-mono border border-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-blue-500 text-center" 
+                  value="${horarioAlarme}" onchange="updateAlarmTimeJsonp('${id}', this.value)">
+              </td>
+              
+              <td class="p-3">
+                <div class="font-bold text-slate-900">${escapeHtml(cliente)}</div>
+                <div class="text-xs text-slate-400 font-mono mt-0.5">${escapeHtml(endereco)}</div>
+              </td>
+              <td class="p-3 text-xs font-semibold bg-slate-50 text-slate-600 rounded border border-slate-100">${escapeHtml(instrucao)}</td>
+              <td class="p-3 text-right space-x-2 whitespace-nowrap">
+                <button class="bg-orange-50 hover:bg-orange-100 text-orange-700 px-3 py-1.5 rounded text-xs font-bold border border-orange-200 transition-colors" onclick="updateStatusJsonp('${id}','A Separar')">
+                  <i class="fas fa-undo mr-1"></i>Estornar
+                </button>
+                <button class="bg-[#004f9f] hover:bg-blue-800 text-white px-3 py-1.5 rounded text-xs font-bold transition-all" onclick="updateStatusJsonp('${id}','Entregue')">
+                  <i class="fas fa-check-double mr-1"></i>Despachar
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        // Contadores do resumo
+        document.getElementById('sum-separar').innerText = orders.filter(o => !o.status_logistica || String(o.status_logistica).toLowerCase().includes('separar')).length;
+        document.getElementById('sum-processo').innerText = orders.filter(o => String(o.status_logistica).toLowerCase().includes('em separa')).length;
+        document.getElementById('sum-pend').innerText = pendOrders.length;
+        document.getElementById('sum-total').innerText = orders.length;
+
+        plotMapMarkers(logOrders);
+      } catch(errRender) {
+        console.error("Erro interno no renderizador: ", errRender);
+      }
+    }
+
+    function moverParaPendenciaPrompt(id) {
+      const motivo = prompt('Insira a especificação técnica da pendência:');
+      if (motivo) updateStatusJsonp(id, 'Pendente', motivo);
+    }
+
+    function initMap() {
+      map = L.map('map').setView([-23.55052, -46.633308], 11); 
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+      markerGroup = L.layerGroup().addTo(map);
+    }
+
+    function plotMapMarkers(orderList) {
+      if(!markerGroup) return;
+      markerGroup.clearLayers();
+      
+      orderList.forEach(o => {
+        const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || '';
+        const numero = o.numero || o.NUMERO || '';
+        const cliente = o.cliente_nome || o.CLIENTE_NOME || '';
+
+        if(endereco && endereco !== 'Endereço não disponível') {
+          const latOffset = (Math.random() - 0.5) * 0.14;
+          const lngOffset = (Math.random() - 0.5) * 0.14;
+          const lat = -23.55052 + latOffset;
+          const lng = -46.633308 + lngOffset;
+
+          L.marker([lat, lng]).addTo(markerGroup)
+           .bindPopup(`
+              <div style="font-family: Arial, sans-serif; font-size:12px; color:#333;">
+                <b style="color:#004f9f; font-size:13px;">Pedido #${numero}</b><br>
+                <span style="color:#666;"><b>Cliente:</b> ${escapeHtml(cliente)}</span><br>
+                <span style="display:block; margin-top:4px; font-size:11px; color:#888; background:#f4f4f5; padding:4px; border-radius:4px;"><i class="fas fa-location-dot"></i> ${escapeHtml(endereco)}</span>
+              </div>
+           `);
+        }
+      });
+    }
+
+    function switchTab(which){
+      document.getElementById('view-separacao').classList.toggle('hidden', which !== 'separacao');
+      document.getElementById('view-logistica').classList.toggle('hidden', which !== 'logistica');
+      document.getElementById('main-sep').className = which === 'separacao' ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('main-log').className = which === 'logistica' ? 'tab-btn active' : 'tab-btn';
+      if(which === 'logistica') { setTimeout(() => map.invalidateSize(), 200); }
+    }
+
+    function switchSubTab(name){
+      document.getElementById('subview-fila').classList.toggle('hidden', name !== 'fila');
+      document.getElementById('subview-pendencias').classList.toggle('hidden', name !== 'pendencias');
+      document.getElementById('sub-fila').className = name==='fila' ? 'bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm' : 'bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200';
+      document.getElementById('sub-pend').className = name==='pendencias' ? 'bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm' : 'bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200';
+    }
+
+    function escapeHtml(t){ if(!t) return ''; return String(t).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+
+    startClock();
+    checkOperator();
+    initMap();
+    load();
+  </script>
+</body>
+</html>
