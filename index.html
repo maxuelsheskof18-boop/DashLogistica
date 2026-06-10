@@ -10,15 +10,14 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
     body { background:#f0f2f5 !important; color:#1e293b !important; font-family:Inter,system-ui,Arial,sans-serif !important; }
     .card { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05) !important; }
     
-    /* CORES INVERTIDAS E CORRIGIDAS CONFORME SOLICITADO */
-    .st-a-separar { background:#fee2e2 !important; color:#991b1b !important; }   /* Vermelho Marcante */
-    .st-em-separacao { background:#dcfce7 !important; color:#166534 !important; } /* Verde Operacional */
+    /* Cores de Fila Invertidas */
+    .st-a-separar { background:#fee2e2 !important; color:#991b1b !important; }   
+    .st-em-separacao { background:#dcfce7 !important; color:#166534 !important; } 
     .st-pronto { background:#ffe8cc !important; color:#995500 !important; }
     .st-entregue { background:#e2e8f0 !important; color:#475569 !important; }
     
@@ -30,13 +29,9 @@
     @media (min-width: 768px) { .tab-btn { padding:12px 24px !important; font-size:15px !important; } }
     .tab-btn.active { color:#1d4ed8 !important; border-bottom-color:#1d4ed8 !important; font-weight:700 !important; background:#f8fafc !important; }
     
-    #map { height: 400px !important; width: 100% !important; border-radius: 8px !important; border: 1px solid #cbd5e1 !important; z-index: 10 !important; }
-    @media (min-width: 1024px) { #map { height: 500px !important; } }
-    
     .toast { position:fixed !important; right:18px !important; top:18px !important; z-index:9999 !important; background:#1e293b !important; color:#ffffff !important; padding:12px 18px !important; border-radius:8px !important; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
     #loadingOverlay { position:fixed !important; inset:0 !important; display:none; align-items:center !important; justify-content:center !important; background:rgba(255,255,255,0.7) !important; z-index:9999 !important; color:#1e293b !important; font-weight: 600 !important; }
     
-    .summary-box { background: rgba(255,255,255,0.95) !important; backdrop-filter: blur(4px) !important; border: 1px solid #cbd5e1 !important; border-radius: 8px !important; padding: 12px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
     @keyframes blink-red { 0% { background-color: rgba(239, 68, 68, 0.08); } 50% { background-color: rgba(239, 68, 68, 0.25); } 100% { background-color: rgba(239, 68, 68, 0.08); } }
     .row-alarm-active { animation: blink-red 1.5s infinite !important; border-left: 4px solid #ef4444 !important; }
   </style>
@@ -57,11 +52,13 @@
   <header class="bg-[#004f9f] text-white px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md w-full">
     <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
       <div class="h-10 w-auto flex items-center justify-center sm:justify-start">
-        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgMTQwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG9nb0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyZDNlZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzhiZGZ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjI4IiBmaWxsPSIjMDAzZjgwIiAvPgogICAgPHBhdGggZD0iTTMwIDQyIEg5MCBNMzAgNjIgSDc1IE0zMCA4MiBIMDUiIHN0cm9rZT0idXJsKCNsb2dvR3JhZCkiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iNzgiIGN5PSI4MiIgcj0iMTEiIGZpbGw9IiMyMmQzZWUiLz4KICA8L2c+CiAgPHRleHQgeD0iMTYwIiB5PSI3MCIgZm9udC1mYW1pbHk9IidJbnRlcicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iI2ZmZmZmZiIgbGV0dGVyLXNwYWNpbmc9IjMiPlZFU0NPMC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMTEyIiBmb250LWZhbWlseT0iJ0ludGVyicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjdhMCIgZmlsbD0iIzIyZDNlZSIgbGV0dGVyLXNwYWNpbmc9IjUiPkNPTlRST0w8/3RleHQ+Cjwvc3ZnPg==" class="h-9 w-auto" alt="Vesco Control Logo" />
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgMTQwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG9nb0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyZDNlZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzhiZGZ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjI4IiBmaWxsPSIjMDAzZjgwIiAvPgogICAgPHBhdGggZD0iTTMwIDQyIEg5MCBNMzAgNjIgSDc1IE0zMCA4MiBIMDUiIHN0cm9rZT0idXJsKCNsb2dvR3JhZCkiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iNzgiIGN5PSI4MiIgcj0iMTEiIGZpbGw9IiMyMmQzZWUiLz4KICA8L2c+CiAgPHRleHQgeD0iMTYwIiB5PSI3MCIgZm9udC1mYW1pbHk9IidJbnRlcicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iI2ZmZmZmZiIgbGV0dGVyLXNwYWNpbmc9IjMiPlZFU0NPPC90ZXh0PgogIDtextCB4PSIxNjAiIHk9IjExMiIgZm9udC1mYW1pbHk9IidJbnRlcicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjdkMCIgZmlsbD0iIzIyZDNlZSIgbGV0dGVyLXNwYWNpbmc9IjUiPkNPTlRST0w8L3RleHQ+Cjwvc3ZnPg==" class="h-9 w-auto" alt="Vesco Control Logo" />
       </div>
+      
       <div class="flex items-center justify-center gap-2 bg-[#003f80] px-3 py-1.5 rounded text-sm w-full sm:w-auto">
         <span class="opacity-80"><i class="fas fa-calendar-alt"></i></span>
         <input type="date" id="topCalendar" class="bg-white text-slate-800 font-bold rounded px-2 py-0.5 text-xs outline-none cursor-pointer" onchange="render()">
+        <button onclick="setTodayDate()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-xxs px-2 py-0.5 rounded transition-all">Hoje</button>
         <span class="border-l border-white/20 h-4 mx-1"></span>
         <span id="activeOperatorDisplay" class="font-bold text-xs truncate max-w-[120px]">Op: ---</span>
       </div>
@@ -116,28 +113,25 @@
     </section>
 
     <section id="view-logistica" class="hidden w-full">
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 w-full">
-        <div class="card p-3 md:p-4 lg:col-span-3 overflow-x-auto rounded-md border border-slate-100 w-full">
-          <table class="w-full text-left border-collapse min-w-[700px]">
-            <thead>
-              <tr class="border-b border-slate-200 text-slate-500 font-bold text-xs bg-slate-50 uppercase">
-                <th class="p-3">Pedido #</th>
-                <th class="p-3 text-center">Limite Alarme</th>
-                <th class="p-3">Destinatário</th>
-                <th class="p-3">Condição de Acerto</th>
-                <th class="p-3 text-right">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="table-logistica" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
-          </table>
-        </div>
-        <div class="card p-3 md:p-4 lg:col-span-2 flex flex-col justify-between relative w-full"><div id="map"></div></div>
+      <div class="card p-3 md:p-4 overflow-x-auto rounded-md border border-slate-100 w-full">
+        <table class="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr class="border-b border-slate-200 text-slate-500 font-bold text-xs bg-slate-50 uppercase">
+              <th class="p-3">Pedido #</th>
+              <th class="p-3 text-center">Limite Alarme</th>
+              <th class="p-3">Destinatário</th>
+              <th class="p-3">Condição de Acerto</th>
+              <th class="p-3 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="table-logistica" class="divide-y divide-slate-100 text-sm font-medium"></tbody>
+        </table>
       </div>
     </section>
 
     <section id="view-entregues" class="hidden w-full">
       <div class="card p-3 md:p-4 w-full overflow-x-auto">
-        <h3 class="font-bold text-slate-800 mb-3 text-base"><i class="fas fa-archive text-emerald-600 mr-2"></i>Histórico Balanço de Despachos Efetuados</h3>
+        <h3 class="font-bold text-slate-800 mb-3 text-base"><i class="fas fa-archive text-emerald-600 mr-2"></i>Histórico de Despachos Efetuados</h3>
         <table class="w-full text-left border-collapse min-w-[700px]">
           <thead>
             <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
@@ -159,7 +153,27 @@
     const API = "https://script.google.com/macros/s/AKfycbzDp2qs2S_MxDc_3afY1TurNKYEwfYKkk2cc4IliNxLiVaJuSKYyRqofOUMnhdFBjwNwg/exec";
     let orders = [];
     let currentOperator = localStorage.getItem('vesco_operator') || '';
-    let map, markerGroup, audioCtx = null, alarmMuted = false, soundLoopInterval = null, snoozeList = {};
+    let audioCtx = null, alarmMuted = false, soundLoopInterval = null, snoozeList = {};
+
+    function setTodayDate() {
+      const dBr = new Date();
+      const offset = dBr.getTimezoneOffset();
+      const dataLocalSp = new Date(dBr.getTime() - (offset*60*1000)).toISOString().split('T')[0];
+      document.getElementById('topCalendar').value = dataLocalSp;
+      render();
+    }
+
+    // RESTAURADA A FUNÇÃO DA INFRAESTRUTURA JSONP BRUTA
+    function jsonpFetch(url, cb) {
+      const cbName = '__jsonp_cb_' + Math.random().toString(36).substr(2,9);
+      window[cbName] = function(res) {
+        try { cb(null, res); } catch(e){}
+        try { delete window[cbName]; } catch(e){}
+        const s = document.getElementById(cbName); if (s) s.remove();
+      };
+      const sep = url.indexOf('?') === -1 ? '?' : '&';
+      document.head.appendChild(Object.assign(document.createElement('script'), { src: `${url}${sep}callback=${cbName}`, id: cbName }));
+    }
 
     function startClock() { 
       setInterval(()=> { 
@@ -167,7 +181,6 @@
         document.getElementById('clock').innerText = horaBrasiliaStr; 
         checkTimeAlarms(horaBrasiliaStr);
       }, 1000); 
-      // AUTO-REFRESH NATIVO DE 30 EM 30 SEGUNDOS PARA SINCRO ENTRE TODOS OS OPERADORES
       setInterval(load, 30000);
     }
 
@@ -188,6 +201,70 @@
       showLoading(true);
       const url = `${API}?action=updateStatus&id=${id}&alarme=${encodeURIComponent(timeValue)}&operador=${encodeURIComponent(currentOperator)}`;
       jsonpFetch(url, function(){ showLoading(false); load(); });
+    }
+
+    // RESTAURADA A FUNÇÃO CRÍTICA DE MONITORAMENTO URBANO DE PRAZOS
+    function checkTimeAlarms(horaBrasiliaStr) {
+      if (!orders || orders.length === 0) return;
+      const [currentHH, currentMM] = horaBrasiliaStr.split(':');
+      const currentVal = parseInt(currentHH) * 60 + parseInt(currentMM);
+      const nowTimestamp = new Date().getTime();
+      
+      let triggerSound = false;
+      let criticalOrderId = null;
+      let criticalOrderNum = '';
+
+      orders.forEach(o => {
+        const id = o.id || o.ID || '';
+        const num = o.numero || o.NUMERO || '';
+        const st = String(o.status_logistica || '').toLowerCase().trim();
+        let limitTime = String(o.alarme || '').trim();
+        
+        if ((st === 'a separar' || st === 'em separação' || st === '' || st.includes('pronto')) && limitTime && limitTime.includes(':')) {
+          const parts = limitTime.split(':');
+          const limitVal = parseInt(parts[0]) * 60 + parseInt(parts[1]);
+
+          const rowEl = document.getElementById(`row-pedido-${id}`);
+          if (currentVal >= limitVal) {
+            if (snoozeList[id] && nowTimestamp < snoozeList[id]) {
+              if (rowEl) rowEl.classList.remove('row-alarm-active');
+              return; 
+            }
+            if (rowEl) rowEl.classList.add('row-alarm-active'); 
+            triggerSound = true;
+            criticalOrderId = id;
+            criticalOrderNum = num;
+          } else {
+            if (rowEl) rowEl.classList.remove('row-alarm-active');
+          }
+        }
+      });
+
+      if (triggerSound && !alarmMuted) {
+        document.getElementById('btnMute').classList.remove('hidden');
+        const modal = document.getElementById('snoozeModal');
+        document.getElementById('modalOrderNum').innerText = criticalOrderNum;
+        document.getElementById('btnSnoozeAction').setAttribute('onclick', `snoozeActiveAlarm('${criticalOrderId}')`);
+        modal.classList.remove('hidden');
+
+        if (!soundLoopInterval) {
+          playBeepSound(); 
+          soundLoopInterval = setInterval(playBeepSound, 2000);
+        }
+      } else if (!triggerSound && soundLoopInterval) {
+        clearInterval(soundLoopInterval);
+        soundLoopInterval = null;
+        document.getElementById('btnMute').classList.add('hidden');
+        document.getElementById('snoozeModal').classList.add('hidden');
+      }
+    }
+
+    function snoozeActiveAlarm(orderId) {
+      const now = new Date();
+      snoozeList[orderId] = now.getTime() + (10 * 60 * 1000); 
+      showToast(`Pedido #${orderId} adiado por 10 minutos.`);
+      stopAudioAlarm(); 
+      alarmMuted = false; 
     }
 
     function render(){
@@ -245,7 +322,7 @@
         </tr>
       `).join('');
 
-      // RENDEREZAÇÃO DA NOVA ABA DE PEDIDOS ENTREGUES
+      // HISTÓRICO DE ENTREGUES
       const tbodyEntregues = document.getElementById('table-entregues');
       const entregueOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'entregue');
       tbodyEntregues.innerHTML = entregueOrders.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400">Nenhum despacho arquivado hoje.</td></tr>` : entregueOrders.map(o => `
@@ -268,20 +345,32 @@
       document.getElementById('main-ent').className = which === 'entregues' ? 'tab-btn active' : 'tab-btn';
     }
 
+    function switchSubTab(name){
+      // Mantido simplificado conforme escopo atual
+    }
+
     function playBeepSound() {
       if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (alarmMuted || !audioCtx) return;
-      let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-      osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine';
-      osc.frequency.setValueAtTime(950, audioCtx.currentTime); gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine';
+        osc.frequency.setValueAtTime(950, audioCtx.currentTime); gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
+      } catch(e){}
     }
 
-    function stopAudioAlarm() { alarmMuted = true; document.getElementById('snoozeModal').classList.add('hidden'); setTimeout(() => { alarmMuted = false; }, 40000); }
+    function stopAudioAlarm() { alarmMuted = true; document.getElementById('snoozeModal').classList.add('hidden'); if(soundLoopInterval){ clearInterval(soundLoopInterval); soundLoopInterval=null;} setTimeout(() => { alarmMuted = false; }, 40000); }
     function checkOperator() { if (!currentOperator) { document.getElementById('operatorModal').classList.remove('hidden'); } else { document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`; } }
     function saveOperator() { const name = document.getElementById('operatorNameInput').value.trim(); if(name) { localStorage.setItem('vesco_operator', name); currentOperator = name; document.getElementById('operatorModal').classList.add('hidden'); document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`; } }
+    function showLoading(on){ document.getElementById('loadingOverlay').style.display = on ? 'flex' : 'none'; }
     
-    startClock(); checkOperator(); load();
+    // Inicialização da data padrão como "Hoje" de forma nativa e segura
+    setTodayDate();
+    startClock(); 
+    checkOperator(); 
+    load();
   </script>
 
   <div id="snoozeModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[9999] hidden p-4">
@@ -289,7 +378,7 @@
       <div class="text-red-500 text-6xl"><i class="fa-solid fa-clock fa-bounce"></i></div>
       <h3 class="text-2xl font-black text-slate-900 uppercase">Estouro de Prazo!</h3>
       <p class="text-base text-slate-600">O pedido crítico <span id="modalOrderNum" class="text-red-600 font-extrabold text-lg">#---</span> estourou o tempo planejado.</p>
-      <button id="btnSnoozeAction" class="w-full bg-amber-500 text-white py-3 rounded-lg text-base font-black shadow-md">ADIAR POR 10 MINUTOS</button>
+      <button id="btnSnoozeAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg text-base font-black shadow-md">ADIAR POR 10 MINUTOS</button>
     </div>
   </div>
 </body>
