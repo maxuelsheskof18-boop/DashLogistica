@@ -6,7 +6,7 @@
   <meta name="google" content="notranslate" />
   <title>Vesco Control — Sistema Operacional Integrado</title>
   
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MTIgNTEyIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmF2R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNld DynamicTAiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmQzZWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNGY5ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iGjEyIiByeD0iMTI4IiBmaWxsPSJ1cmwoI2ZhdkdyYWQpIi8+CiAgPHBhdGggZD0iTTEyMCAxODAgSDMyMCBNMTIwIDI2MCBIMzkyIE0xMjAgMzQwIEgyODAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iMzQwIiByPSI0NSIgZmlsbD0iIzIyZDNlZSIvPgo8L3N2Zz4=">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA5MTIgNTEyIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmF2R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmQzZWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNGY5ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iGjEyIiByeD0iMTI4IiBmaWxsPSJ1cmwoI2ZhdkdyYWQpIi8+CiAgPHBhdGggZD0iTTEyMCAxODAgSDMyMCBNMTIwIDI2MCBIMzkyIE0xMjAgMzQwIEgyODAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iMzQwIiByPSI0NSIgZmlsbD0iIzIyZDNlZSIvPgo8L3N2Zz4=">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,12 +16,12 @@
     body { background:#f0f2f5 !important; color:#1e293b !important; font-family:Inter,system-ui,Arial,sans-serif !important; }
     .card { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05) !important; }
     
-    /* CORES DE STATUS OPERACIONAIS EXATAS PEDIDAS */
-    .st-a-separar { background:#fef2f2 !important; border: 1px solid #fca5a5 !important; color:#991b1b !important; }   /* VERMELHO */
-    .st-em-separacao { background:#fef3c7 !important; border: 1px solid #fde68a !important; color:#92400e !important; } /* AMARELO */
-    .st-pronto { background:#f0fdf4 !important; border: 1px solid #bbf7d0 !important; color:#166534 !important; }
-    .st-pendente { background:#f5f5f4 !important; border: 1px solid #e7e5e4 !important; color:#44403c !important; }
-    .st-entregue { background:#f1f5f9 !important; border: 1px solid #e2e8f0 !important; color:#475569 !important; }
+    /* CORREÇÃO DO CONFLITO DAS CORES COM FORÇA TOTAL (!IMPORTANT) */
+    .st-a-separar { background-color: #fef2f2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; }   
+    .st-em-separacao { background-color: #fef3c7 !important; border: 1px solid #fde68a !important; color: #92400e !important; } 
+    .st-pronto { background-color: #f0fdf4 !important; border: 1px solid #bbf7d0 !important; color: #166534 !important; }
+    .st-pendente { background-color: #f5f5f4 !important; border: 1px solid #e7e5e4 !important; color: #44403c !important; }
+    .st-entregue { background-color: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; color: #475569 !important; }
     
     .status-pill { padding:6px 14px !important; border-radius:9999px !important; font-weight:800 !important; font-size:12px !important; display:inline-flex !important; align-items:center !important; gap:4px !important; text-transform: uppercase !important; white-space: nowrap !important; }
     .status-dot { width:8px !important; height:8px !important; border-radius:50% !important; display:inline-block !important; }
@@ -341,7 +341,7 @@
         return (st === 'a separar' || st === 'em separação' || st === '') && String(o.numero || '').toLowerCase().includes(searchQ);
       });
 
-      // ORDENAÇÃO POR TIPO DE ENTREGA (EMERGENCIAL -> RETIRADA -> NORMAL)
+      // ORDENAÇÃO DE PRIORIDADE EM TEMPO REAL: EMERGENCIA -> RETIRADA -> NORMAL
       filaOrders.sort((a, b) => {
         const ta = String(a.tipo_entrega || 'Normal').toLowerCase();
         const tb = String(b.tipo_entrega || 'Normal').toLowerCase();
@@ -386,7 +386,7 @@
         `;
       }).join('');
 
-      // FILA DE PENDÊNCIAS RESTAURADA
+      // FILA DE PENDÊNCIAS
       const tbodyPend = document.getElementById('table-pendencias');
       const pendOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'pendente');
       tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhuma pendência ativa.</td></tr>` : pendOrders.map(o => `
@@ -521,7 +521,7 @@
   </script>
 
   <div id="snoozeModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[9999] hidden p-4">
-    <div class="bg-white border-2 border-red-500 p-6 rounded-xl max-sm w-full text-center space-y-4">
+    <div class="bg-white border-2 border-red-500 p-6 rounded-xl max-w-sm w-full text-center space-y-4">
       <div class="text-red-500 text-5xl"><i class="fa-solid fa-clock fa-bounce"></i></div>
       <h3 class="text-xl font-black text-slate-900 uppercase">Estouro de Prazo!</h3>
       <p class="text-sm text-slate-600">O pedido crítico <span id="modalOrderNum" class="text-red-600 font-extrabold text-base">#---</span> estourou o tempo.</p>
