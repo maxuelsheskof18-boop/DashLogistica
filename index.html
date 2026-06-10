@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" class="notranslate" translate="no">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <meta name="google" content="notranslate" />
   <title>Vesco Control — Sistema Operacional Integrado</title>
   
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmF2R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmQzZWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNGY5ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSJ1cmwoI2ZhdkdyYWQpIi8+CiAgPHBhdGggZD0iTTEyMCAxODAgSDMyMCBNMTIwIDI2MCBIMzkyIE0xMjAgMzQwIEgyODAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iMzQwIiByPSI0NSIgZmlsbD0iIzIyZDNlZSIvPgo8L3N2Zz4=">
@@ -10,30 +11,32 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
   <style>
-    body { background:#f0f2f5; color:#1e293b; font-family:Inter,system-ui,Arial; }
-    .card { background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05); }
+    body { background:#f0f2f5 !important; color:#1e293b !important; font-family:Inter,system-ui,Arial,sans-serif !important; }
+    .card { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05) !important; }
     
     /* Status Coloridos */
-    .st-a-separar { background:#cfffff; color:#005577; }
-    .st-em-separacao { background:#cfffd5; color:#006622; }
-    .st-pronto { background:#ffe8cc; color:#995500; }
-    .st-entregue { background:#e2e8f0; color:#475569; }
+    .st-a-separar { background:#cfffff !important; color:#005577 !important; }
+    .st-em-separacao { background:#cfffd5 !important; color:#006622 !important; }
+    .st-pronto { background:#ffe8cc !important; color:#995500 !important; }
+    .st-entregue { background:#e2e8f0 !important; color:#475569 !important; }
     
-    .status-pill { padding:6px 12px; border-radius:9999px; font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px; }
-    .status-dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .status-pill { padding:6px 12px !important; border-radius:9999px !important; font-weight:700 !important; font-size:13px !important; display:inline-flex !important; align-items:center !important; gap:6px !important; }
+    .status-dot { width:8px !important; height:8px !important; border-radius:50% !important; display:inline-block !important; }
     
-    .tab-nav { border-bottom: 2px solid #e2e8f0; }
-    .tab-btn { padding:12px 16px; md:padding:12px 24px; font-weight:600; font-size:14px; md:font-size:15px; color:#64748b; border-bottom:3px solid transparent; transition: all 0.2s; }
-    .tab-btn.active { color:#1d4ed8; border-bottom-color:#1d4ed8; font-weight:700; background:#f8fafc; }
+    .tab-nav { border-bottom: 2px solid #e2e8f0 !important; }
+    .tab-btn { padding:12px 16px !important; font-weight:600 !important; font-size:14px !important; color:#64748b !important; border-bottom:3px solid transparent !important; transition: all 0.2s !important; }
+    @media (min-width: 768px) { .tab-btn { padding:12px 24px !important; font-size:15px !important; } }
+    .tab-btn.active { color:#1d4ed8 !important; border-bottom-color:#1d4ed8 !important; font-weight:700 !important; background:#f8fafc !important; }
     
-    #map { height: 400px; width: 100%; border-radius: 8px; border: 1px solid #cbd5e1; }
-    @media (min-width: 1024px) { #map { height: 500px; } }
+    #map { height: 400px !important; width: 100% !important; border-radius: 8px !important; border: 1px solid #cbd5e1 !important; z-index: 10 !important; }
+    @media (min-width: 1024px) { #map { height: 500px !important; } }
     
-    .toast { position:fixed; right:18px; top:18px; z-index:9999; background:#1e293b; color:#ffffff; padding:12px 18px; border-radius:8px; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-    #loadingOverlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(255,255,255,0.7); z-index:999; color:#1e293b; font-weight: 600; }
+    .toast { position:fixed !important; right:18px !important; top:18px !important; z-index:9999 !important; background:#1e293b !important; color:#ffffff !important; padding:12px 18px !important; border-radius:8px !important; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
+    #loadingOverlay { position:fixed !important; inset:0 !important; display:none; align-items:center !important; justify-content:center !important; background:rgba(255,255,255,0.7) !important; z-index:9999 !important; color:#1e293b !important; font-weight: 600 !important; }
     
-    .summary-box { background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .summary-box { background: rgba(255,255,255,0.95) !important; backdrop-filter: blur(4px) !important; border: 1px solid #cbd5e1 !important; border-radius: 8px !important; padding: 12px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
 
     /* Alarme Visual Animado */
     @keyframes blink-red {
@@ -41,12 +44,12 @@
       50% { background-color: rgba(239, 68, 68, 0.25); }
       100% { background-color: rgba(239, 68, 68, 0.08); }
     }
-    .row-alarm-active { animation: blink-red 1.5s infinite; border-left: 4px solid #ef4444 !important; }
+    .row-alarm-active { animation: blink-red 1.5s infinite !important; border-left: 4px solid #ef4444 !important; }
   </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen notranslate">
 
-  <div id="loadingOverlay"><div class="text-xl"><i class="fas fa-spinner fa-spin mr-2 text-blue-600"></i>Sincronizando Banco de Dados Vesco...</div></div>
+  <div id="loadingOverlay"><div class="text-xl font-bold"><i class="fas fa-spinner fa-spin mr-2 text-blue-600"></i>Sincronizando Banco de Dados Vesco...</div></div>
   <div id="toast" class="toast"></div>
 
   <div id="operatorModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[5000] hidden p-4">
@@ -58,7 +61,7 @@
     </div>
   </div>
 
-  <header class="bg-[#004f9f] text-white px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
+  <header class="bg-[#004f9f] text-white px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md w-full">
     <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
       
       <div class="h-10 w-auto flex items-center justify-center sm:justify-start">
@@ -74,7 +77,7 @@
     </div>
     <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto border-t border-white/10 sm:border-t-0 pt-2 sm:pt-0">
       <button onclick="stopAudioAlarm()" id="btnMute" class="hidden bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded text-xs items-center gap-1.5 animate-bounce shadow-md">
-        <i class="fas fa-volume-mute"></i> Silenciar Som
+        <i class="fas fa-volume-mute"></i> Silenciar
       </button>
       <div class="flex items-center gap-1.5 text-xs sm:text-sm bg-white/10 px-3 py-1.5 rounded font-medium">
         <span class="text-base">🇧🇷</span> Horário de Brasília
@@ -83,7 +86,7 @@
     </div>
   </header>
 
-  <div class="bg-white tab-nav flex flex-col md:flex-row shadow-sm justify-between items-stretch md:items-center p-2 md:p-0 gap-2">
+  <div class="bg-white tab-nav flex flex-col md:flex-row shadow-sm justify-between items-stretch md:items-center p-2 md:p-0 gap-2 w-full">
     <div class="flex justify-center md:justify-start">
       <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active flex-1 md:flex-none text-center"><i class="fas fa-pallet mr-2"></i>Separação</button>
       <button onclick="switchTab('logistica')" id="main-log" class="tab-btn flex-1 md:flex-none text-center"><i class="fas fa-map-location-dot mr-2"></i>Logística</button>
@@ -94,16 +97,16 @@
     </div>
   </div>
 
-  <main class="p-3 md:p-6 flex-grow">
+  <main class="p-3 md:p-6 flex-grow w-full">
     
-    <section id="view-separacao" class="space-y-4">
-      <div class="card p-3 md:p-4">
+    <section id="view-separacao" class="space-y-4 w-full">
+      <div class="card p-3 md:p-4 w-full">
         <div class="flex gap-2 border-b border-slate-200 pb-3 mb-4">
           <button id="sub-fila" onclick="switchSubTab('fila')" class="bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm">Fila de Triagem</button>
           <button id="sub-pend" onclick="switchSubTab('pendencias')" class="bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200">Pendências</button>
         </div>
 
-        <div id="subview-fila" class="overflow-x-auto rounded-md border border-slate-100">
+        <div id="subview-fila" class="overflow-x-auto rounded-md border border-slate-100 w-full">
           <table class="w-full text-left border-collapse min-w-[800px]">
             <thead>
               <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
@@ -120,7 +123,7 @@
           </table>
         </div>
 
-        <div id="subview-pendencias" class="hidden overflow-x-auto rounded-md border border-slate-100">
+        <div id="subview-pendencias" class="hidden overflow-x-auto rounded-md border border-slate-100 w-full">
           <table class="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-sm bg-slate-50">
@@ -136,10 +139,10 @@
       </div>
     </section>
 
-    <section id="view-logistica" class="hidden">
-      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+    <section id="view-logistica" class="hidden w-full">
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 w-full">
         
-        <div class="card p-3 md:p-4 lg:col-span-3 overflow-x-auto order-2 lg:order-1 rounded-md border border-slate-100">
+        <div class="card p-3 md:p-4 lg:col-span-3 overflow-x-auto order-2 lg:order-1 rounded-md border border-slate-100 w-full">
           <h3 class="font-bold text-slate-800 mb-3 text-base flex items-center gap-2"><i class="fas fa-list-check text-blue-600"></i> Manifesto de Despacho Técnico</h3>
           <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
@@ -155,7 +158,7 @@
           </table>
         </div>
 
-        <div class="card p-3 md:p-4 lg:col-span-2 flex flex-col justify-between order-1 lg:order-2 relative">
+        <div class="card p-3 md:p-4 lg:col-span-2 flex flex-col justify-between order-1 lg:order-2 relative w-full">
           <div class="mb-3">
             <h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i class="fas fa-earth-americas text-emerald-600"></i> Roteirização Urbana Real</h3>
             <p class="text-xs text-slate-400">Afinetes plotados dinamicamente com base nas vias urbanas mapeadas.</p>
@@ -185,7 +188,8 @@
     let map, markerGroup;
     let audioCtx = null;
     let alarmMuted = false;
-    let soundLoopInterval = null; // Gerenciador do loop do som intermitente
+    let soundLoopInterval = null; 
+    let snoozeList = {}; 
 
     const dBr = new Date();
     const offset = dBr.getTimezoneOffset();
@@ -197,15 +201,12 @@
         document.getElementById('operatorModal').classList.remove('hidden');
       } else {
         document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`;
-        // Ativa o contexto de áudio se reabrir com operador salvo
         initAudioContext();
       }
     }
 
     function initAudioContext() {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
 
     function saveOperator() {
@@ -216,7 +217,7 @@
         document.getElementById('operatorModal').classList.add('hidden');
         document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`;
         showToast(`Operador autenticado com sucesso.`);
-        initAudioContext(); // ATIVAÇÃO CRÍTICA DO ÁUDIO PELO CLIQUE DO USUÁRIO
+        initAudioContext(); 
       }
     }
 
@@ -234,7 +235,7 @@
     function showLoading(on){ document.getElementById('loadingOverlay').style.display = on ? 'flex' : 'none'; }
     function showToast(txt){ const t=document.getElementById('toast'); t.innerText=txt; t.style.display='block'; setTimeout(()=>t.style.display='none', 3000); }
     
-    function startClock(){ 
+    function startClock() { 
       setInterval(()=> { 
         const agora = new Date();
         const horaBrasiliaStr = agora.toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'});
@@ -291,44 +292,54 @@
       });
     }
 
-    // DISPARADOR DE ÁUDIO NATIVO ROBUSTO COM FILTRO DE CONTEXTO SUSPENSO
     function playBeepSound() {
       if (alarmMuted || !audioCtx) return;
       try {
-        // Se o navegador suspendeu o canal por inatividade, força a reativação
-        if (audioCtx.state === 'suspended') {
-          audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         let osc = audioCtx.createOscillator();
         let gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(950, audioCtx.currentTime); // Som eletrônico limpo e perceptível
+        osc.frequency.setValueAtTime(950, audioCtx.currentTime); 
         gain.gain.setValueAtTime(0.4, audioCtx.currentTime); 
         osc.start();
         osc.stop(audioCtx.currentTime + 0.2); 
-      } catch(e) { console.error("Falha ao forçar áudio nativo: ", e); }
+      } catch(e) {}
     }
 
     function stopAudioAlarm() {
       alarmMuted = true;
       document.getElementById('btnMute').classList.add('hidden');
+      document.getElementById('snoozeModal').classList.add('hidden');
       if (soundLoopInterval) {
         clearInterval(soundLoopInterval);
         soundLoopInterval = null;
       }
-      // Reativa o canal de escuta após 40 segundos caso surjam novos atrasos
       setTimeout(() => { alarmMuted = false; }, 40000); 
+    }
+
+    function snoozeActiveAlarm(orderId) {
+      const now = new Date();
+      snoozeList[orderId] = now.getTime() + (10 * 60 * 1000); 
+      showToast(`Pedido #${orderId} adiado por 10 minutos.`);
+      stopAudioAlarm(); 
+      alarmMuted = false; 
     }
 
     function checkTimeAlarms(horaBrasiliaStr) {
       if (!orders || orders.length === 0) return;
       const [currentHH, currentMM] = horaBrasiliaStr.split(':');
       const currentVal = parseInt(currentHH) * 60 + parseInt(currentMM);
+      const nowTimestamp = new Date().getTime();
+      
       let triggerSound = false;
+      let criticalOrderId = null;
+      let criticalOrderNum = '';
 
       orders.forEach(o => {
+        const id = o.id || o.ID || '';
+        const num = o.numero || o.NUMERO || '';
         const st = String(o.status_logistica || o.STATUS_LOGISTICA || '').toLowerCase().trim();
         let limitTime = String(o.alarme || o.ALARME || '').trim();
         if (limitTime.includes('T')) limitTime = limitTime.split('T')[1].substring(0,5);
@@ -337,28 +348,40 @@
           const parts = limitTime.split(':');
           const limitVal = parseInt(parts[0]) * 60 + parseInt(parts[1]);
 
-          const rowEl = document.getElementById(`row-pedido-${o.id || o.ID}`);
+          const rowEl = document.getElementById(`row-pedido-${id}`);
           if (currentVal >= limitVal) {
+            if (snoozeList[id] && nowTimestamp < snoozeList[id]) {
+              if (rowEl) rowEl.classList.remove('row-alarm-active');
+              return; 
+            }
+
             if (rowEl) rowEl.classList.add('row-alarm-active'); 
             triggerSound = true;
+            criticalOrderId = id;
+            criticalOrderNum = num;
           } else {
             if (rowEl) rowEl.classList.remove('row-alarm-active');
           }
         }
       });
 
-      // GERENCIADOR DE LOOP DO SOM INTERMITENTE (Bipa a cada 2 segundos até silenciar ou concluir)
       if (triggerSound && !alarmMuted) {
         document.getElementById('btnMute').classList.remove('hidden');
+        
+        const modal = document.getElementById('snoozeModal');
+        document.getElementById('modalOrderNum').innerText = criticalOrderNum;
+        document.getElementById('btnSnoozeAction').setAttribute('onclick', `snoozeActiveAlarm('${criticalOrderId}')`);
+        modal.classList.remove('hidden');
+
         if (!soundLoopInterval) {
-          playBeepSound(); // Primeiro bip imediato
+          playBeepSound(); 
           soundLoopInterval = setInterval(playBeepSound, 2000);
         }
       } else if (!triggerSound && soundLoopInterval) {
-        // Se os pedidos foram limpos/concluídos, desliga o loop automaticamente
         clearInterval(soundLoopInterval);
         soundLoopInterval = null;
         document.getElementById('btnMute').classList.add('hidden');
+        document.getElementById('snoozeModal').classList.add('hidden');
       }
     }
 
@@ -415,7 +438,7 @@
                     <span class="status-dot ${isSep ? 'bg-emerald-500' : 'bg-cyan-500'}"></span>${statusAtual}
                   </span>
                 </td>
-                <td class="p-3 font-black text-slate-900 text-base">#${numero}</td>
+                <td class="p-3 font-bold text-slate-900 text-base">#${numero}</td>
                 <td class="p-3 text-center">
                   <input type="time" class="bg-slate-50 text-slate-800 font-bold font-mono border border-slate-300 rounded px-2 py-1 text-sm outline-none focus:border-blue-500 text-center" 
                     value="${horarioAlarme}" onchange="updateAlarmTimeJsonp('${id}', this.value)">
@@ -501,46 +524,6 @@
       }
     }
 
-    function moverParaPendenciaPrompt(id) {
-      const motivo = prompt('Insira a especificação técnica da pendência:');
-      if (motivo) updateStatusJsonp(id, 'Pendente', motivo);
-    }
-
-    function initMap() {
-      map = L.map('map').setView([-23.55052, -46.633308], 11); 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
-      markerGroup = L.layerGroup().addTo(map);
-    }
-
-    function plotMapMarkers(orderList) {
-      if(!markerGroup) return;
-      markerGroup.clearLayers();
-      
-      orderList.forEach(o => {
-        const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || '';
-        const numero = o.numero || o.NUMERO || '';
-        const cliente = o.cliente_nome || o.CLIENTE_NOME || '';
-
-        if(endereco && endereco !== 'Endereço não disponível') {
-          const latOffset = (Math.random() - 0.5) * 0.14;
-          const lngOffset = (Math.random() - 0.5) * 0.14;
-          const lat = -23.55052 + latOffset;
-          const lng = -46.633308 + lngOffset;
-
-          L.marker([lat, lng]).addTo(markerGroup)
-           .bindPopup(`
-              <div style="font-family: Arial, sans-serif; font-size:12px; color:#333;">
-                <b style="color:#004f9f; font-size:13px;">Pedido #${numero}</b><br>
-                <span style="color:#666;"><b>Cliente:</b> ${escapeHtml(cliente)}</span><br>
-                <span style="display:block; margin-top:4px; font-size:11px; color:#888; background:#f4f4f5; padding:4px; border-radius:4px;"><i class="fas fa-location-dot"></i> ${escapeHtml(endereco)}</span>
-              </div>
-           `);
-        }
-      });
-    }
-
     function switchTab(which){
       document.getElementById('view-separacao').classList.toggle('hidden', which !== 'separacao');
       document.getElementById('view-logistica').classList.toggle('hidden', which !== 'logistica');
@@ -556,6 +539,28 @@
       document.getElementById('sub-pend').className = name==='pendencias' ? 'bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm' : 'bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300 hover:bg-slate-200';
     }
 
+    function initMap() {
+      map = L.map('map').setView([-23.55052, -46.633308], 11); 
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
+      markerGroup = L.layerGroup().addTo(map);
+    }
+
+    function plotMapMarkers(orderList) {
+      if(!markerGroup) return;
+      markerGroup.clearLayers();
+      orderList.forEach(o => {
+        const endereco = o.endereco_completo || o.ENDERECO_COMPLETO || '';
+        const numero = o.numero || o.NUMERO || '';
+        const cliente = o.cliente_nome || o.CLIENTE_NOME || '';
+        if(endereco && endereco !== 'Endereço não disponível') {
+          const latOffset = (Math.random() - 0.5) * 0.14;
+          const lngOffset = (Math.random() - 0.5) * 0.14;
+          L.marker([-23.55052 + latOffset, -46.633308 + lngOffset]).addTo(markerGroup)
+           .bindPopup(`<b>Pedido #${numero}</b><br><span>${escapeHtml(cliente)}</span>`);
+        }
+      });
+    }
+
     function escapeHtml(t){ if(!t) return ''; return String(t).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 
     startClock();
@@ -563,5 +568,26 @@
     initMap();
     load();
   </script>
+
+  <div id="snoozeModal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-md flex items-center justify-center z-[9999] hidden p-4">
+    <div class="bg-white border-2 border-red-500 p-8 rounded-xl max-w-md w-full text-center space-y-5 shadow-2xl">
+      <div class="text-red-500 text-6xl">
+        <i class="fas fa-clock animate-bounce"></i>
+      </div>
+      <h3 class="text-2xl font-black text-slate-900 tracking-tight uppercase">Estouro de Prazo Limite!</h3>
+      <p class="text-base text-slate-600 font-medium">
+        O pedido crítico <span id="modalOrderNum" class="text-red-600 font-extrabold text-lg">#---</span> ultrapassou o horário planejado de expedição.
+      </p>
+      <div class="flex flex-col gap-2 pt-2">
+        <button id="btnSnoozeAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-lg text-base font-black transition-all shadow-md flex items-center justify-center gap-2">
+          <i class="fas fa-hourglass-start"></i> ADIAR POR 10 MINUTOS
+        </button>
+        <button onclick="stopAudioAlarm()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-lg text-sm font-bold transition-all">
+          Apenas Silenciar
+        </button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
