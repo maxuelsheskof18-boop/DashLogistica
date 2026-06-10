@@ -4,6 +4,9 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Vesco Control — Sistema Operacional Integrado</title>
+  
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0iZmF2R3JhZCIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0eWxlPSJzdG9wLWNvbG9yOiMyMmQzZWU7c3RvcC1vcGFjaXR5OjEiIC8+CiAgICAgIDxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzAwNGY5ZjtzdG9wLW9wYWNpdHk6MSIgLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+Ci  貸BkZWZzPgogIDxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iMTI4IiBmaWxsPSJ1cmwoI2ZhdkdyYWQpIi8+CiAgPHBhdGggZD0iTTEyMCAxODAgSDMyMCBNMTIwIDI2MCBIMzkyIE0xMjAgMzQwIEgyODAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSI0NCIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGNpcmNsZSBjeD0iMzgwIiBjeT0iMzQwIiByPSI0NSIgZmlsbD0iIzIyZDNlZSIvPgo8L3N2Zz4=">
+
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -55,12 +58,13 @@
     </div>
   </div>
 
-  <header class="bg-[#004f9f] text-white px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
+  <header class="bg-[#004f9f] text-white px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center gap-3 shadow-md">
     <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
-      <div class="flex items-center gap-2">
-        <i class="fas fa-boxes text-2xl text-cyan-300"></i>
-        <span class="text-xl font-black tracking-wider">VESCO CONTROL</span>
+      
+      <div class="h-10 w-auto flex items-center justify-center sm:justify-start">
+        <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2MDAgMTQwIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIj4KICA8ZGVmcz4KICAgIDxsaW5lYXJHcmFkaWVudCBpZD0ibG9nb0dyYWQiIHgxPSIwJSIgeTE9IjAlIiB4Mj0iMTAwJSIgeTI9IjAlIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzIyZDNlZTtzdG9wLW9wYWNpdHk6MSIgLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMzhiZGZ4O3N0b3Atb3BhY2l0eToxIiAvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTAsIDEwKSI+CiAgICA8cmVjdCB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgcng9IjI4IiBmaWxsPSIjMDAzZjgwIiAvPgogICAgPHBhdGggZD0iTTMwIDQyIEg5MCBNMzAgNjIgSDc1IE0zMCA4MiBIMDUiIHN0cm9rZT0idXJsKCNsb2dvR3JhZCkiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPGNpcmNsZSBjeD0iNzgiIGN5PSI4MiIgcj0iMTEiIGZpbGw9IiMyMmQzZWUiLz4KICA8L2c+CiAgPHRleHQgeD0iMTYwIiB5PSI3MCIgZm9udC1mYW1pbHk9IidJbnRlcicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI0NCIgZm9udC13ZWlnaHQ9IjkwMCIgZmlsbD0iI2ZmZmZmZiIgbGV0dGVyLXNwYWNpbmc9IjMiPlZFU0NPMC90ZXh0PgogIDx0ZXh0IHg9IjE2MCIgeT0iMTEyIiBmb250LWZhbWlseT0iJ0ludGVyicsICdTZWdvZSBVSTEnLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9IjdhMCIgZmlsbD0iIzIyZDNlZSIgbGV0dGVyLXNwYWNpbmc9IjUiPkNPTlRST0w8L3RleHQ+Cjwvc3ZnPg==" class="h-9 w-auto" alt="Vesco Control Logo" />
       </div>
+
       <div class="flex items-center justify-center gap-2 bg-[#003f80] px-3 py-1.5 rounded text-sm w-full sm:w-auto">
         <span class="opacity-80"><i class="fas fa-calendar-alt"></i></span>
         <input type="date" id="topCalendar" class="bg-white text-slate-800 font-bold rounded px-2 py-0.5 text-xs outline-none cursor-pointer" onchange="render()">
@@ -517,7 +521,6 @@
       if(which === 'logistica') { setTimeout(() => map.invalidateSize(), 200); }
     }
 
-    // Corrigido comportamento visual do toggle de sub-abas mobile
     function switchSubTab(name){
       document.getElementById('subview-fila').classList.toggle('hidden', name !== 'fila');
       document.getElementById('subview-pendencias').classList.toggle('hidden', name !== 'pendencias');
