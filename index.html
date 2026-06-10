@@ -10,6 +10,7 @@
 
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   
   <style>
     body { background:#f0f2f5 !important; color:#1e293b !important; font-family:Inter,system-ui,Arial,sans-serif !important; }
@@ -19,22 +20,30 @@
     .st-a-separar { background:#fef2f2 !important; border: 1px solid #fca5a5 !important; color:#991b1b !important; }   
     .st-em-separacao { background:#f0fdf4 !important; border: 1px solid #bbf7d0 !important; color:#166534 !important; } 
     .st-pronto { background:#fff7ed !important; border: 1px solid #ffedd5 !important; color:#c2410c !important; }
+    .st-pendente { background:#fef3c7 !important; border: 1px solid #fde68a !important; color:#92400e !important; }
     .st-entregue { background:#f1f5f9 !important; border: 1px solid #e2e8f0 !important; color:#475569 !important; }
     
-    .status-pill { padding:6px 10px !important; border-radius:9999px !important; font-weight:800 !important; font-size:12px !important; display:inline-flex !important; align-items:center !important; gap:4px !important; text-transform: uppercase !important; white-space: nowrap !important; }
+    .status-pill { padding:6px 14px !important; border-radius:9999px !important; font-weight:800 !important; font-size:12px !important; display:inline-flex !important; align-items:center !important; gap:4px !important; text-transform: uppercase !important; white-space: nowrap !important; }
     .status-dot { width:8px !important; height:8px !important; border-radius:50% !important; display:inline-block !important; }
     
     @keyframes pulse-red { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.4; } }
     .dot-blink-red { animation: pulse-red 1.2s infinite !important; background-color: #ef4444 !important; }
 
     .tab-nav { border-bottom: 2px solid #e2e8f0 !important; }
-    .tab-btn { padding:12px 12px !important; font-weight:600 !important; font-size:13px !important; color:#64748b !important; border-bottom:3px solid transparent !important; transition: all 0.2s !important; }
+    .tab-btn { padding:12px 14px !important; font-weight:600 !important; font-size:13px !important; color:#64748b !important; border-bottom:3px solid transparent !important; transition: all 0.2s !important; }
     @media (min-width: 768px) { .tab-btn { padding:12px 24px !important; font-size:15px !important; } }
     .tab-btn.active { color:#1d4ed8 !important; border-bottom-color:#1d4ed8 !important; font-weight:700 !important; background:#f8fafc !important; }
     
-    .toast { position:fixed !important; right:18px !important; top:18px !important; z-index:9999 !important; background:#1e293b !important; color:#ffffff !important; padding:12px 18px !important; border-radius:8px !important; display:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
-    #loadingOverlay { position:fixed !important; inset:0 !important; display:none; align-items:center !important; justify-content:center !important; background:rgba(255,255,255,0.7) !important; z-index:9999 !important; color:#1e293b !important; font-weight: 600 !important; }
+    #map, #map-propostas { height: 420px !important; width: 100% !important; border-radius: 8px !important; border: 1px solid #cbd5e1 !important; z-index: 10 !important; }
+    @media (min-width: 1024px) { #map, #map-propostas { height: 520px !important; } }
     
+    /* CORES ESTILIZADAS DO PING DO MAPA */
+    .marker-blue { background-color: #1d4ed8; border: 2px solid #ffffff; border-radius: 50%; width: 14px; height: 14px; box-shadow: 0 0 6px rgba(0,0,0,0.4); }
+    .marker-yellow { background-color: #eab308; border: 2px solid #ffffff; border-radius: 50%; width: 14px; height: 14px; box-shadow: 0 0 6px rgba(0,0,0,0.5); animation: pulse-red 1.8s infinite; }
+
+    .toast { position:fixed !important; right:18px !important; top:18px !important; z-index:9999 !important; background:#1e293b !important; color:#ffffff !important; padding:12px 18px !important; border-radius:8px !important; display:none; }
+    #loadingOverlay { position:fixed !important; inset:0 !important; display:none; align-items:center !important; justify-content:center !important; background:rgba(255,255,255,0.7) !important; z-index:9999 !important; color:#1e293b; font-weight: 600; }
+    .summary-box { background: rgba(255,255,255,0.95) !important; backdrop-filter: blur(4px) !important; border: 1px solid #cbd5e1 !important; border-radius: 8px !important; padding: 12px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1) !important; }
     @keyframes blink-red-row { 0% { background-color: rgba(239, 68, 68, 0.05); } 50% { background-color: rgba(239, 68, 68, 0.15); } 100% { background-color: rgba(239, 68, 68, 0.05); } }
     .row-alarm-active { animation: blink-red-row 1.5s infinite !important; border-left: 4px solid #ef4444 !important; }
   </style>
@@ -60,8 +69,8 @@
       
       <div class="flex items-center justify-center gap-1.5 bg-[#003f80] px-3 py-1 rounded text-xs w-full sm:w-auto">
         <span class="opacity-80"><i class="fas fa-calendar-alt"></i></span>
-        <input type="date" id="topCalendar" class="bg-white text-slate-800 font-bold rounded px-1.5 py-0.5 text-xs outline-none cursor-pointer" onchange="render()">
-        <button onclick="setTodayDate()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded transition-all">Hoje</button>
+        <input type="date" id="topCalendar" class="bg-white text-slate-800 font-bold rounded px-1.5 py-0.5 text-xs outline-none" onchange="render()">
+        <button onclick="setTodayDate()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] px-1.5 py-0.5 rounded">Hoje</button>
         <span class="border-l border-white/20 h-4 mx-1"></span>
         <span id="activeOperatorDisplay" class="font-bold text-xs truncate max-w-[100px]">Op: ---</span>
       </div>
@@ -76,14 +85,15 @@
 
   <div class="bg-white tab-nav flex flex-col md:flex-row shadow-sm justify-between items-stretch md:items-center p-1 md:p-0 gap-1.5 w-full">
     <div class="flex justify-start overflow-x-auto whitespace-nowrap scrollbar-none">
-      <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active"><i class="fas fa-pallet mr-1.5"></i>Separação</button>
-      <button onclick="switchTab('separados_hoje')" id="main-sephoje" class="tab-btn"><i class="fas fa-boxes-packing text-orange-600 mr-1.5"></i>Separados (Hoje)</button>
-      <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot mr-1.5"></i>Logística</button>
-      <button onclick="switchTab('entregues')" id="main-ent" class="tab-btn"><i class="fas fa-circle-check text-emerald-600 mr-1.5"></i>Entregues</button>
+      <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active"><i class="fas fa-pallet mr-1"></i>Separação</button>
+      <button onclick="switchTab('separados_hoje')" id="main-sephoje" class="tab-btn"><i class="fas fa-boxes-packing text-orange-600 mr-1"></i>Separados</button>
+      <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot mr-1"></i>Logística</button>
+      <button onclick="switchTab('propostas')" id="main-prop" class="tab-btn"><i class="fas fa-money-bill-trend-up text-amber-500 mr-1"></i>Propostas</button>
+      <button onclick="switchTab('entregues')" id="main-ent" class="tab-btn"><i class="fas fa-circle-check text-emerald-600 mr-1"></i>Entregues</button>
     </div>
     <div class="flex items-center gap-2 px-2 md:px-4 pb-1 md:pb-0">
-      <input id="search" class="bg-slate-50 border border-slate-300 px-3 py-1 rounded-md text-sm w-full md:w-64 outline-none" placeholder="Filtrar pedido..." oninput="render()">
-      <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded-md text-sm transition-colors flex items-center justify-center gap-1" onclick="load()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+      <input id="search" class="bg-slate-50 border border-slate-300 px-3 py-1 rounded-md text-sm w-full md:w-64 outline-none" placeholder="Filtrar..." oninput="render()">
+      <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1 rounded-md text-sm" onclick="load()"><i class="fas fa-sync-alt"></i></button>
     </div>
   </div>
 
@@ -91,20 +101,39 @@
     
     <section id="view-separacao" class="space-y-4 w-full">
       <div class="card p-2 md:p-4 w-full">
-        <div class="overflow-x-auto rounded-md border border-slate-100 w-full">
+        <div class="flex gap-2 border-b pb-2 mb-3">
+          <button id="sub-fila" onclick="switchSubTab('fila')" class="bg-blue-700 text-white px-4 py-1.5 rounded text-sm font-bold shadow-sm">Fila Ativa</button>
+          <button id="sub-pend" onclick="switchSubTab('pendencias')" class="bg-slate-100 text-slate-700 px-4 py-1.5 rounded text-sm font-bold border border-slate-300">Pendências</button>
+        </div>
+
+        <div id="subview-fila" class="overflow-x-auto rounded-md border border-slate-100 w-full">
           <table class="w-full text-left border-collapse min-w-full">
             <thead>
               <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-xs md:text-sm bg-slate-50">
-                <th class="p-2 md:p-3">Status</th>
+                <th class="p-2 md:p-3">Status / Entrega</th>
                 <th class="p-2 md:p-3">Pedido #</th>
                 <th class="p-2 md:p-3 text-center">Limite Alarme</th>
-                <th class="p-2 md:p-3 text-center hidden md:table-cell">Data Previsão</th>
+                <th class="p-2 md:p-3 text-center hidden md:table-cell">Previsão</th>
                 <th class="p-2 md:p-3">Cliente</th>
                 <th class="p-2 md:p-3 hidden md:table-cell">Endereço</th>
                 <th class="p-2 md:p-3 text-right">Controle</th>
               </tr>
             </thead>
             <tbody id="table-fila" class="divide-y divide-slate-100 text-xs md:text-sm font-medium"></tbody>
+          </table>
+        </div>
+
+        <div id="subview-pendencias" class="hidden overflow-x-auto rounded-md border border-slate-100 w-full">
+          <table class="w-full text-left border-collapse min-w-full">
+            <thead>
+              <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-xs bg-slate-50">
+                <th class="p-3">Pedido #</th>
+                <th class="p-3">Cliente</th>
+                <th class="p-3">Motivo Registrado</th>
+                <th class="p-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="table-pendencias" class="divide-y divide-slate-100 text-xs font-medium"></tbody>
           </table>
         </div>
       </div>
@@ -117,8 +146,8 @@
             <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-xs md:text-sm bg-slate-50">
               <th class="p-2 md:p-3">Pedido #</th>
               <th class="p-2 md:p-3">Cliente / Destinatário</th>
-              <th class="p-2 md:p-3 text-center">Tempo de Separação</th>
-              <th class="p-2 md:p-3 text-center">Status Interno</th>
+              <th class="p-2 md:p-3 text-center">Tempo de Produção</th>
+              <th class="p-2 md:p-3 text-center">Status</th>
               <th class="p-2 md:p-3 text-right">Ação</th>
             </tr>
           </thead>
@@ -128,19 +157,39 @@
     </section>
 
     <section id="view-logistica" class="hidden w-full">
-      <div class="card p-2 md:p-4 overflow-x-auto rounded-md border border-slate-100 w-full">
-        <table class="w-full text-left border-collapse min-w-full">
-          <thead>
-            <tr class="border-b border-slate-200 text-slate-500 font-bold text-xs bg-slate-50 uppercase">
-              <th class="p-2 md:p-3">Pedido #</th>
-              <th class="p-2 md:p-3 text-center">Limite Alarme</th>
-              <th class="p-2 md:p-3">Destinatário</th>
-              <th class="p-2 md:p-3 hidden md:table-cell">Condição de Acerto</th>
-              <th class="p-2 md:p-3 text-right">Ação</th>
-            </tr>
-          </thead>
-          <tbody id="table-logistica" class="divide-y divide-slate-100 text-xs md:text-sm font-medium"></tbody>
-        </table>
+      <div class="grid grid-cols-1 lg:grid-cols-5 gap-4 w-full">
+        <div class="card p-2 md:p-4 lg:col-span-3 overflow-x-auto rounded-md border border-slate-100 w-full">
+          <table class="w-full text-left border-collapse min-w-full">
+            <thead>
+              <tr class="border-b border-slate-200 text-slate-500 font-bold text-xs bg-slate-50 uppercase">
+                <th class="p-2 md:p-3">Pedido #</th>
+                <th class="p-2 md:p-3 text-center">Limite Alarme</th>
+                <th class="p-2 md:p-3">Destinatário</th>
+                <th class="p-2 md:p-3 hidden md:table-cell">Condição de Acerto</th>
+                <th class="p-2 md:p-3 text-right">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="table-logistica" class="divide-y divide-slate-100 text-xs md:text-sm font-medium"></tbody>
+          </table>
+        </div>
+        
+        <div class="card p-2 md:p-4 lg:col-span-2 flex flex-col justify-between relative w-full">
+          <div class="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500 flex justify-between">
+            <span>Roteiro + Propostas Perto</span>
+            <span class="text-amber-500"><i class="fas fa-location-dot"></i> Amarelo = Oportunidade</span>
+          </div>
+          <div class="relative w-full"><div id="map"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-propostas" class="hidden w-full">
+      <div class="card p-3 flex flex-col justify-between relative w-full">
+        <div class="mb-2">
+          <h3 class="font-bold text-slate-800 text-base flex items-center gap-1.5"><i class="fas fa-map-location-dot text-amber-500"></i> Localização de Propostas Comerciais</h3>
+          <p class="text-xs text-slate-400">Exibição limpa de Leads e Orçamentos abertos na capital para conversão.</p>
+        </div>
+        <div id="map-propostas"></div>
       </div>
     </section>
 
@@ -151,7 +200,7 @@
             <tr class="border-b-2 border-slate-200 text-slate-500 font-bold text-xs md:text-sm bg-slate-50">
               <th class="p-2 md:p-3">Pedido #</th>
               <th class="p-2 md:p-3">Cliente / Destinatário</th>
-              <th class="p-2 md:p-3 hidden md:table-cell">Endereço de Entrega Final</th>
+              <th class="p-2 md:p-3 hidden md:table-cell">Endereço Final</th>
               <th class="p-2 md:p-3 text-center">Tempo</th>
               <th class="p-2 md:p-3 text-center">Status</th>
             </tr>
@@ -163,17 +212,18 @@
 
   </main>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script>
     const API = "https://script.google.com/macros/s/AKfycbzDp2qs2S_MxDc_3afY1TurNKYEwfYKkk2cc4IliNxLiVaJuSKYyRqofOUMnhdFBjwNwg/exec";
     let orders = [];
-    let currentOperator = localStorage.getItem('vesco_operator') || '';
-    let audioCtx = null, alarmMuted = false, soundLoopInterval = null, snoozeList = {};
+    let propostas = [];
+    let currentOperator = localStorage.getItem('vesco_operator') || 'Maxuel';
+    let mapLogistica, mapPropostas, markerGroupLog, markerGroupProp, audioCtx = null, alarmMuted = false, soundLoopInterval = null, snoozeList = {};
 
     function setTodayDate() {
       const dBr = new Date();
       const offset = dBr.getTimezoneOffset();
-      const dataLocalSp = new Date(dBr.getTime() - (offset*60*1000)).toISOString().split('T')[0];
-      document.getElementById('topCalendar').value = dataLocalSp;
+      document.getElementById('topCalendar').value = new Date(dBr.getTime() - (offset*60*1000)).toISOString().split('T')[0];
       render();
     }
 
@@ -182,7 +232,7 @@
       window[cbName] = function(res) {
         try { cb(null, res); } catch(e){}
         try { delete window[cbName]; } catch(e){}
-        const s = document.getElementById(cbName); if (s) s.remove();
+        document.getElementById(cbName)?.remove();
       };
       const sep = url.indexOf('?') === -1 ? '?' : '&';
       document.head.appendChild(Object.assign(document.createElement('script'), { src: `${url}${sep}callback=${cbName}`, id: cbName }));
@@ -199,7 +249,11 @@
 
     function load(){
       jsonpFetch(API, function(err, resp){
-        if (resp && resp.success) { orders = resp.data || []; render(); }
+        if (resp && resp.success) { 
+          orders = resp.data || []; 
+          propostas = resp.propostas || [];
+          render(); 
+        }
       });
     }
 
@@ -221,64 +275,45 @@
       const [currentHH, currentMM] = horaBrasiliaStr.split(':');
       const currentVal = parseInt(currentHH) * 60 + parseInt(currentMM);
       const nowTimestamp = new Date().getTime();
-      
-      let triggerSound = false;
-      let criticalOrderId = null;
-      let criticalOrderNum = '';
+      let triggerSound = false, criticalOrderId = null, criticalOrderNum = '';
 
       orders.forEach(o => {
         const id = o.id || '';
         const num = o.numero || '';
         const st = String(o.status_logistica || '').toLowerCase().trim();
         let limitTime = String(o.alarme || '').trim();
+        if (limitTime.includes('T')) limitTime = limitTime.split('T')[1].substring(0,5);
         
         if ((st === 'a separar' || st === 'em separação' || st === '' || st.includes('pronto')) && limitTime && limitTime.includes(':')) {
           const parts = limitTime.split(':');
           const limitVal = parseInt(parts[0]) * 60 + parseInt(parts[1]);
-
           const rowEl = document.getElementById(`row-pedido-${id}`);
           if (currentVal >= limitVal) {
-            if (snoozeList[id] && nowTimestamp < snoozeList[id]) {
-              if (rowEl) rowEl.classList.remove('row-alarm-active');
-              return; 
-            }
-            if (rowEl) rowEl.classList.add('row-alarm-active'); 
-            triggerSound = true;
-            criticalOrderId = id;
-            criticalOrderNum = num;
-          } else {
-            if (rowEl) rowEl.classList.remove('row-alarm-active');
-          }
+            if (snoozeList[id] && nowTimestamp < snoozeList[id]) { rowEl?.classList.remove('row-alarm-active'); return; }
+            rowEl?.classList.add('row-alarm-active'); 
+            triggerSound = true; criticalOrderId = id; criticalOrderNum = num;
+          } else { rowEl?.classList.remove('row-alarm-active'); }
         }
       });
 
       if (triggerSound && !alarmMuted) {
         document.getElementById('btnMute').classList.remove('hidden');
-        const modal = document.getElementById('snoozeModal');
         document.getElementById('modalOrderNum').innerText = criticalOrderNum;
         document.getElementById('btnSnoozeAction').setAttribute('onclick', `snoozeActiveAlarm('${criticalOrderId}')`);
-        modal.classList.remove('hidden');
-
-        if (!soundLoopInterval) {
-          playBeepSound(); 
-          soundLoopInterval = setInterval(playBeepSound, 2000);
-        }
+        document.getElementById('snoozeModal').classList.remove('hidden');
+        if (!soundLoopInterval) { playBeepSound(); soundLoopInterval = setInterval(playBeepSound, 2000); }
       } else if (!triggerSound && soundLoopInterval) {
-        clearInterval(soundLoopInterval);
-        soundLoopInterval = null;
+        clearInterval(soundLoopInterval); soundLoopInterval = null;
         document.getElementById('btnMute').classList.add('hidden');
         document.getElementById('snoozeModal').classList.add('hidden');
       }
     }
 
     function snoozeActiveAlarm(orderId) {
-      const now = new Date();
-      snoozeList[orderId] = now.getTime() + (10 * 60 * 1000); 
-      stopAudioAlarm(); 
-      alarmMuted = false; 
+      snoozeList[orderId] = new Date().getTime() + (10 * 60 * 1000); 
+      stopAudioAlarm(); alarmMuted = false; 
     }
 
-    // CORREÇÃO E FILTRAGEM INTELIGENTE DE DATAS DO GOOGLE SHEETS
     function formatLimpaDataPlanilha(rawDate) {
       if (!rawDate) return '—';
       const str = String(rawDate).trim();
@@ -286,44 +321,56 @@
         const partesYMD = str.split('T')[0].split('-');
         if(partesYMD.length === 3) return `${partesYMD[2]}/${partesYMD[1]}/${partesYMD[0]}`;
       }
-      if (str.includes('/')) {
-        return str.split(' ')[0];
-      }
-      return str;
+      return str.includes('/') ? str.split(' ')[0] : str;
     }
 
     function render(){
       const searchQ = document.getElementById('search').value.toLowerCase();
       
-      // ABA 1: FILA DE SEPARAÇÃO (A SEPARAR = VERMELHO | EM SEPARAÇÃO = VERDE)
-      const tbodyFila = document.getElementById('table-fila');
+      // FILTRA E ORDENA POR TIPO (EMERGENCIAL -> RETIRADA -> NORMAL)
       const filaOrders = orders.filter(o => {
         const st = String(o.status_logistica || '').toLowerCase().trim();
         return (st === 'a separar' || st === 'em separação' || st === '') && String(o.numero || '').toLowerCase().includes(searchQ);
       });
 
+      filaOrders.sort((a, b) => {
+        const ta = String(a.tipo_entrega || 'Normal').toLowerCase();
+        const tb = String(b.tipo_entrega || 'Normal').toLowerCase();
+        const pA = ta.includes('emerg') ? 1 : (ta.includes('retir') ? 2 : 3);
+        const pB = tb.includes('emerg') ? 1 : (tb.includes('retir') ? 2 : 3);
+        return pA - pB;
+      });
+
+      // CONSTRÓI TABELA DE TRIAGEM
+      const tbodyFila = document.getElementById('table-fila');
       tbodyFila.innerHTML = filaOrders.map(o => {
         const id = o.id || '';
         const statusAtual = o.status_logistica || 'A Separar';
         const isSep = statusAtual.toLowerCase().includes('separa');
-        const dataFormatada = formatLimpaDataPlanilha(o.data_prevista);
+        const tipo = String(o.tipo_entrega || 'Normal').toUpperCase();
+        
+        let labelTipo = `<span class="bg-slate-100 text-slate-700 text-[10px] px-1.5 py-0.5 rounded font-black">NORMAL</span>`;
+        if(tipo.includes('EMERG')) labelTipo = `<span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-black animate-pulse">⚠️ EMERGÊNCIAL</span>`;
+        if(tipo.includes('RETIR')) labelTipo = `<span class="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-black">📦 RETIRADA</span>`;
 
         return `
           <tr id="row-pedido-${id}" class="hover:bg-slate-50 transition-colors text-xs md:text-sm">
-            <td class="p-2 md:p-3">
+            <td class="p-2 md:p-3 flex flex-col gap-1">
               <span class="status-pill ${isSep ? 'st-em-separacao' : 'st-a-separar'}">
                 <span class="status-dot ${isSep ? 'bg-emerald-600' : 'dot-blink-red'}"></span>
                 <span class="hidden md:inline">${statusAtual}</span>
               </span>
+              <div>${labelTipo}</div>
             </td>
             <td class="p-2 md:p-3 font-bold text-slate-900">#${o.numero || 'S/N'}</td>
             <td class="p-2 md:p-3 text-center">
               <input type="time" class="bg-slate-50 border rounded px-1 text-center font-bold text-xs md:text-sm w-16 md:w-20" value="${o.alarme || ''}" onchange="updateAlarmTimeJsonp('${id}', this.value)">
             </td>
-            <td class="p-2 md:p-3 text-center font-mono text-[#004f9f] font-bold hidden md:table-cell">${dataFormatada}</td>
+            <td class="p-2 md:p-3 text-center font-mono text-[#004f9f] font-bold hidden md:table-cell">${formatLimpaDataPlanilha(o.data_prevista)}</td>
             <td class="p-2 md:p-3 font-semibold text-slate-900 truncate max-w-[100px] md:max-w-none">${o.cliente_nome || ''}</td>
             <td class="p-2 md:p-3 text-xs text-slate-500 max-w-xs truncate hidden md:table-cell">${o.endereco_completo || ''}</td>
             <td class="p-2 md:p-3 text-right space-x-1 whitespace-nowrap">
+              <button class="bg-amber-500 text-white px-2 py-1 rounded font-bold text-[11px]" onclick="moverParaPendenciaPrompt('${id}')">Pendência</button>
               <button class="bg-blue-600 text-white px-2 py-1 rounded font-bold text-[11px]" onclick="updateStatusJsonp('${id}','Em Separação')">Iniciar</button>
               <button class="bg-emerald-600 text-white px-2 py-1 rounded font-bold text-[11px]" onclick="updateStatusJsonp('${id}','Pronto p/ Entrega')">Concluir</button>
             </td>
@@ -331,27 +378,35 @@
         `;
       }).join('');
 
-      // ABA 2: SEPARADOS HOJE
+      // RECONSTRÓI TABELA DE PENDÊNCIAS
+      const tbodyPend = document.getElementById('table-pendencias');
+      const pendOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'pendente');
+      tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhuma pendência ativa.</td></tr>` : pendOrders.map(o => `
+        <tr class="text-xs md:text-sm text-slate-700">
+          <td class="p-3 font-bold">#${o.numero}</td><td class="p-3 font-semibold">${o.cliente_nome}</td>
+          <td class="p-3 text-amber-800 font-mono bg-amber-50 rounded">${o.observacao_logistica || 'Falta de estoque'}</td>
+          <td class="p-3 text-right"><button class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-bold" onclick="updateStatusJsonp('${o.id}','A Separar')">Liberar</button></td>
+        </tr>
+      `).join('');
+
+      // SEPARADOS HOJE
       const tbodySepHoje = document.getElementById('table-separados-hoje');
       const prontosOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim().includes('pronto') && String(o.numero || '').toLowerCase().includes(searchQ));
-      
       tbodySepHoje.innerHTML = prontosOrders.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400">Nenhum registro.</td></tr>` : prontosOrders.map(o => `
         <tr class="hover:bg-slate-50 text-xs md:text-sm">
-          <td class="p-2 md:p-3 font-black text-slate-900">#${o.numero}</td>
-          <td class="p-2 md:p-3 font-semibold text-slate-800">${o.cliente_nome}</td>
+          <td class="p-2 md:p-3 font-black text-slate-900">#${o.numero}</td><td class="p-2 md:p-3 font-semibold text-slate-800">${o.cliente_nome}</td>
           <td class="p-2 md:p-3 text-center text-blue-700 font-mono font-bold bg-blue-50/40 rounded">${o.tempo_separacao || '—'}</td>
           <td class="p-2 md:p-3 text-center"><span class="status-pill st-pronto"><span class="status-dot bg-orange-500"></span>Separado</span></td>
           <td class="p-2 md:p-3 text-right"><button class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-bold text-[11px]" onclick="updateStatusJsonp('${o.id}','A Separar')">Refazer</button></td>
         </tr>
       `).join('');
 
-      // ABA 3: LOGÍSTICA
+      // LOGÍSTICA
       const tbodyLog = document.getElementById('table-logistica');
       tbodyLog.innerHTML = prontosOrders.map(o => `
         <tr id="row-pedido-${o.id}" class="hover:bg-slate-50 text-xs md:text-sm">
-          <td class="p-2 md:p-3 font-bold">#${o.numero}</td>
-          <td class="p-2 md:p-3 text-center font-mono">${o.alarme || '—'}</td>
-          <td class="p-2 md:p-3"><b>${o.cliente_nome}</b><div class="text-[11px] text-slate-400 md:block hidden">${o.endereco_completo}</div></td>
+          <td class="p-2 md:p-3 font-bold">#${o.numero}</td><td class="p-2 md:p-3 text-center font-mono">${o.alarme || '—'}</td>
+          <td class="p-2 md:p-3"><b>${o.cliente_nome}</b><div class="text-[11px] text-slate-400">${o.endereco_completo || ''}</div></td>
           <td class="p-2 md:p-3 bg-slate-50 hidden md:table-cell text-xs">${o.instrucao_entrega || '—'}</td>
           <td class="p-2 md:p-3 text-right space-x-1 whitespace-nowrap">
             <button class="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded font-bold text-[11px]" onclick="updateStatusJsonp('${o.id}','A Separar')">Estornar</button>
@@ -360,30 +415,85 @@
         </tr>
       `).join('');
 
-      // ABA 4: ENTREGUES
+      // ENTREGUES
       const tbodyEntregues = document.getElementById('table-entregues');
       const entregueOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'entregue' && String(o.numero || '').toLowerCase().includes(searchQ));
       tbodyEntregues.innerHTML = entregueOrders.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400">Nenhum despacho.</td></tr>` : entregueOrders.map(o => `
         <tr class="hover:bg-slate-50 text-xs md:text-sm">
-          <td class="p-2 md:p-3 font-black text-slate-900">#${o.numero}</td>
-          <td class="p-2 md:p-3 font-semibold text-slate-800">${o.cliente_nome}</td>
+          <td class="p-2 md:p-3 font-black text-slate-900">#${o.numero}</td><td class="p-2 md:p-3 font-semibold text-slate-800">${o.cliente_nome}</td>
           <td class="p-2 md:p-3 text-xs text-slate-500 hidden md:table-cell">${o.endereco_completo}</td>
           <td class="p-2 md:p-3 text-center text-emerald-700 font-mono font-bold">${o.tempo_separacao || '—'}</td>
           <td class="p-2 md:p-3 text-center"><span class="bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full text-[11px]">📦 Fim</span></td>
         </tr>
       `).join('');
+
+      plotMaps(prontos);
+    }
+
+    function moverParaPendenciaPrompt(id) {
+      const motivo = prompt('Motivo de bloqueio para Pendência:');
+      if (motivo) updateStatusJsonp(id, 'Pendente', motivo);
+    }
+
+    function initMaps() {
+      mapLogistica = L.map('map').setView([-23.5505, -46.6333], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapLogistica);
+      markerGroupLog = L.layerGroup().addTo(mapLogistica);
+
+      mapPropostas = L.map('map-propostas').setView([-23.5505, -46.6333], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapPropostas);
+      markerGroupProp = L.layerGroup().addTo(mapPropostas);
+    }
+
+    function plotMaps(prontos) {
+      if(!markerGroupLog || !markerGroupProp) return;
+      markerGroupLog.clearLayers();
+      markerGroupProp.clearLayers();
+
+      // INJEÇÃO DOS MULTI-PINS URBANOS CORPORATIVOS SOLICITADOS
+      prontos.forEach(o => {
+        const lOffset = (Math.random() - 0.5) * 0.12;
+        const nOffset = (Math.random() - 0.5) * 0.12;
+        L.marker([-23.5505 + lOffset, -46.6333 + nOffset], { icon: L.divIcon({ className: 'marker-blue' }) }).addTo(markerGroupLog)
+         .bindPopup(`<b>PEDIDO #${o.numero}</b><br><b>Cliente:</b> ${o.cliente_nome}`);
+      });
+
+      propostas.forEach(p => {
+        const lOffset = (Math.random() - 0.5) * 0.12;
+        const nOffset = (Math.random() - 0.5) * 0.12;
+        const lat = -23.5505 + lOffset;
+        const lng = -46.6333 + nOffset;
+
+        // 1. Injeta Cruzamento Inteligente no Mapa de Logística (Em Amarelo)
+        L.marker([lat, lng], { icon: L.divIcon({ className: 'marker-yellow' }) }).addTo(markerGroupLog)
+         .bindPopup(`<b style="color:#b45309;"><i class="fas fa-bullseye"></i> PROPOSTA PERTO</b><br><b>Proposta nº:</b> ${p.numero}<br><b>Cliente:</b> ${p.cliente_nome}`);
+
+        // 2. Injeta no Mapa Exclusivo da Aba de Propostas (Em Amarelo)
+        L.marker([lat, lng], { icon: L.divIcon({ className: 'marker-yellow' }) }).addTo(markerGroupProp)
+         .bindPopup(`<b>PROPOSTA Nº ${p.numero}</b><br><b>Cliente:</b> ${p.cliente_nome}`);
+      });
     }
 
     function switchTab(which){
       document.getElementById('view-separacao').classList.toggle('hidden', which !== 'separacao');
       document.getElementById('view-separados_hoje').classList.toggle('hidden', which !== 'separados_hoje');
       document.getElementById('view-logistica').classList.toggle('hidden', which !== 'logistica');
+      document.getElementById('view-propostas').classList.toggle('hidden', which !== 'propostas');
       document.getElementById('view-entregues').classList.toggle('hidden', which !== 'entregues');
       
       document.getElementById('main-sep').className = which === 'separacao' ? 'tab-btn active' : 'tab-btn';
       document.getElementById('main-sephoje').className = which === 'separados_hoje' ? 'tab-btn active' : 'tab-btn';
       document.getElementById('main-log').className = which === 'logistica' ? 'tab-btn active' : 'tab-btn';
+      document.getElementById('main-prop').className = which === 'propostas' ? 'tab-btn active' : 'tab-btn';
       document.getElementById('main-ent').className = which === 'entregues' ? 'tab-btn active' : 'tab-btn';
+      
+      if(which === 'logistica') setTimeout(() => mapLogistica.invalidateSize(), 250);
+      if(which === 'propostas') setTimeout(() => mapPropostas.invalidateSize(), 250);
+    }
+
+    function switchSubTab(name){
+      document.getElementById('subview-fila').classList.toggle('hidden', name !== 'fila');
+      document.getElementById('subview-pendencias').classList.toggle('hidden', name !== 'pendencias');
     }
 
     function playBeepSound() {
@@ -406,6 +516,7 @@
     setTodayDate();
     startClock(); 
     checkOperator(); 
+    initMaps();
     load();
   </script>
 
