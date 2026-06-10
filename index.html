@@ -16,15 +16,19 @@
     body { background:#f0f2f5 !important; color:#1e293b !important; font-family:Inter,system-ui,Arial,sans-serif !important; }
     .card { background:#ffffff !important; border:1px solid #e2e8f0 !important; border-radius:8px !important; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.05) !important; }
     
-    /* CORREÇÃO DO CONFLITO DAS CORES COM FORÇA TOTAL (!IMPORTANT) */
-    .st-a-separar { background-color: #fef2f2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; }   
-    .st-em-separacao { background-color: #fef3c7 !important; border: 1px solid #fde68a !important; color: #92400e !important; } 
-    .st-pronto { background-color: #f0fdf4 !important; border: 1px solid #bbf7d0 !important; color: #166534 !important; }
-    .st-pendente { background-color: #f5f5f4 !important; border: 1px solid #e7e5e4 !important; color: #44403c !important; }
-    .st-entregue { background-color: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; color: #475569 !important; }
+    /* CORES DOS CRASHÉS CORRIGIDAS DE FORMA INDEPENDENTE COM FORÇA TOTAL */
+    .status-pill.badge-vermelho { background-color: #fee2e2 !important; border: 1px solid #fca5a5 !important; color: #991b1b !important; }
+    .status-pill.badge-amarelo { background-color: #fef9c3 !important; border: 1px solid #fef08a !important; color: #854d0e !important; }
+    .status-pill.badge-verde { background-color: #dcfce7 !important; border: 1px solid #bbf7d0 !important; color: #166534 !important; }
+    .status-pill.badge-cinza { background-color: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; color: #475569 !important; }
     
-    .status-pill { padding:6px 14px !important; border-radius:9999px !important; font-weight:800 !important; font-size:12px !important; display:inline-flex !important; align-items:center !important; gap:4px !important; text-transform: uppercase !important; white-space: nowrap !important; }
+    .status-pill { padding:6px 14px !important; border-radius:9999px !important; font-weight:800 !important; font-size:12px !important; display:inline-flex !important; align-items:center !important; gap:6px !important; text-transform: uppercase !important; white-space: nowrap !important; }
     .status-dot { width:8px !important; height:8px !important; border-radius:50% !important; display:inline-block !important; }
+    
+    /* SINALIZADORES OPERACIONAIS */
+    .dot-vermelho { background-color: #ef4444 !important; }
+    .dot-amarelo { background-color: #eab308 !important; }
+    .dot-verde { background-color: #22c55e !important; }
     
     @keyframes pulse-red { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.4; } }
     .dot-blink-red { animation: pulse-red 1.2s infinite !important; background-color: #ef4444 !important; }
@@ -361,12 +365,16 @@
         if(tipo.includes('EMERG')) tagPrioridade = `<div class="mt-1"><span class="bg-red-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold animate-pulse">⚠️ EMERGÊNCIAL</span></div>`;
         if(tipo.includes('RETIR')) tagPrioridade = `<div class="mt-1"><span class="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded font-bold">📦 RETIRADA</span></div>`;
 
+        // Atribuição de classes corrigida de forma estrita contra heranças indesejadas
+        const badgeClass = isSep ? 'badge-amarelo' : 'badge-vermelho';
+        const dotClass = isSep ? 'dot-amarelo' : 'dot-blink-red';
+
         return `
           <tr id="row-pedido-${id}" class="hover:bg-slate-50 transition-colors text-xs md:text-sm">
             <td class="p-2 md:p-3">
-              <span class="status-pill ${isSep ? 'st-em-separacao' : 'st-a-separar'}">
-                <span class="status-dot ${isSep ? 'bg-amber-500' : 'dot-blink-red'}"></span>
-                <span class="hidden md:inline">${statusAtual}</span>
+              <span class="status-pill ${badgeClass}">
+                <span class="status-dot ${dotClass}"></span>
+                <span>${statusAtual}</span>
               </span>
               ${tagPrioridade}
             </td>
@@ -389,7 +397,7 @@
       // FILA DE PENDÊNCIAS
       const tbodyPend = document.getElementById('table-pendencias');
       const pendOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'pendente');
-      tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhuma pendência ativa.</td></tr>` : pendOrders.map(o => `
+      tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400">Nenhuma pendência activa.</td></tr>` : pendOrders.map(o => `
         <tr class="text-xs md:text-sm text-slate-700">
           <td class="p-3 font-bold">#${o.numero}</td>
           <td class="p-3 font-semibold">${o.cliente_nome}</td>
@@ -409,7 +417,7 @@
           <td class="p-2 md:p-3 font-black text-slate-900">#${o.numero}</td>
           <td class="p-2 md:p-3 font-semibold text-slate-800">${o.cliente_nome}</td>
           <td class="p-2 md:p-3 text-center text-blue-700 font-mono font-bold bg-blue-50/40 rounded">${o.tempo_separacao || '—'}</td>
-          <td class="p-2 md:p-3 text-center"><span class="status-pill st-pronto"><span class="status-dot bg-emerald-600"></span>Separado</span></td>
+          <td class="p-2 md:p-3 text-center"><span class="status-pill badge-verde"><span class="status-dot dot-verde"></span>Separado</span></td>
           <td class="p-2 md:p-3 text-right"><button class="bg-orange-100 text-orange-700 px-2 py-0.5 rounded font-bold text-[11px]" onclick="updateStatusJsonp('${o.id}','A Separar')">Refazer</button></td>
         </tr>
       `).join('');
@@ -495,22 +503,8 @@
       });
     }
 
-    function playBeepSound() {
-      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (alarmMuted || !audioCtx) return;
-      try {
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
-        osc.connect(gain); gain.connect(audioCtx.destination); osc.type = 'sine';
-        osc.frequency.setValueAtTime(950, audioCtx.currentTime); gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.15);
-      } catch(e){}
-    }
-
-    function stopAudioAlarm() { alarmMuted = true; document.getElementById('snoozeModal').classList.add('hidden'); if(soundLoopInterval){ clearInterval(soundLoopInterval); soundLoopInterval=null;} setTimeout(() => { alarmMuted = false; }, 40000); }
-    function checkOperator() { if (!currentOperator) { document.getElementById('operatorModal').classList.remove('hidden'); } else { document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`; } }
     function saveOperator() { const name = document.getElementById('operatorNameInput').value.trim(); if(name) { localStorage.setItem('vesco_operator', name); currentOperator = name; document.getElementById('operatorModal').classList.add('hidden'); document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`; } }
-    function showLoading(on){ document.getElementById('loadingOverlay').style.display = on ? 'flex' : 'none'; }
+    function checkOperator() { if (!currentOperator) { document.getElementById('operatorModal').classList.remove('hidden'); } else { document.getElementById('activeOperatorDisplay').innerText = `Op: ${currentOperator}`; } }
     function escapeHtml(t){ if(!t) return ''; return String(t).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
     
     setTodayDate();
