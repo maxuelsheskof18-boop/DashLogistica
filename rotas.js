@@ -39,12 +39,20 @@ function renderRotas() {
     // Adiciona uma tag visual se o pedido for Flex
     const isFlex = (o.situacao_nome !== undefined || String(o.nomeformafenvio || '').toLowerCase().includes('flex')) ? '<span class="text-[9px] bg-amber-100 text-amber-700 px-1 py-0.5 rounded ml-1">FLEX</span>' : '';
 
-    return `
+   return `
       <tr class="border-b cursor-pointer hover:bg-slate-50 ${checked ? 'bg-purple-50' : ''}" onclick="toggleRouteOrder('${id}')">
-        <td class="p-2 text-center"><input type="checkbox" ${checked} onclick="event.stopPropagation(); toggleRouteOrder('${id}')"></td>
-        <td class="p-2 text-xs font-bold text-slate-800">#${escapeHtml(o.numero)} ${isFlex}</td>
-        <td class="p-2 text-xs text-slate-700 font-medium">${escapeHtml(o.cliente_nome)}<br><span class="text-[10px] text-slate-400 font-normal">${escapeHtml(o.endereco_completo || '')}</span></td>
-        <td class="p-2 text-[10px] text-slate-500 text-right uppercase tracking-wider">${escapeHtml(o.status_logistica || o.situacao_nome || '')}</td>
+        <td data-label="Selecionar" class="p-2 text-center">
+          <input type="checkbox" ${checked} onclick="event.stopPropagation(); toggleRouteOrder('${id}')">
+        </td>
+        <td data-label="Pedido" class="p-2 text-xs font-bold text-slate-800">
+          #${escapeHtml(o.numero)} ${isFlex}
+        </td>
+        <td data-label="Cliente" class="p-2 text-xs text-slate-700 font-medium">
+          ${escapeHtml(o.cliente_nome)}<br><span class="text-[10px] text-slate-400 font-normal">${escapeHtml(o.endereco_completo || '')}</span>
+        </td>
+        <td data-label="Situação" class="p-2 text-[10px] text-slate-500 text-right uppercase tracking-wider">
+          ${escapeHtml(o.status_logistica || o.situacao_nome || '')}
+        </td>
       </tr>`;
   }).join('');
   
