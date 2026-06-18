@@ -237,65 +237,90 @@ function extractDateDefinitiveWithDebug(input){
 }
 
 // -------------------------
-// Geocoding (fila+cache)
+// Geocoding (Fila Lenta de Socorro - PLANO B)
+// Só entra em ação se o Google Apps Script falhar e não mandar a coordenada.
 // -------------------------
 function normalizeAddressKey(addr){
   if(!addr) return '';
   return String(addr).trim().replace(/\s+/g,' ').toLowerCase();
 }
+
 function geocodeAddress(address){
   return new Promise((resolve, reject) => {
     if(!address || String(address).trim() === '') return resolve(null);
     const key = normalizeAddressKey(address);
     if(geocodeCache.hasOwnProperty(key)) return resolve(geocodeCache[key]);
+    
+    // Coloca na fila de espera
     geocodeQueue.push({ address, resolve, reject });
     processGeocodeQueue();
   });
 }
+
 function processGeocodeQueue(){
   if(geocodeProcessing) return;
   geocodeProcessing = true;
+  
   const next = () => {
     const item = geocodeQueue.shift();
     if(!item){ geocodeProcessing = false; return; }
+
     const address = item.address;
     const key = normalizeAddressKey(address);
-    const q = encodeURIComponent(address + ', Brasil');
-    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=1&accept-language=pt-BR`;
-    fetch(url, { method: 'GET' })
+    const q = encodeURIComponent(address + ', Brasil'); // Força a busca no Brasil
+    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=0`;
+
+    // Busca na internet direto pelo navegador
+    fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
       .then(r => r.json())
       .then(js => {
         if(Array.isArray(js) && js.length > 0){
           const p = js[0];
-          const res = { lat: parseFloat(p.lat), lon: parseFloat(p.lon), display_name: p.display_name || address, raw: p };
-          geocodeCache[key] = res;
+          const res = { lat: parseFloat(p.lat), lon: parseFloat(p.lon) };
+          geocodeCache[key] = res; // Salva na memória do navegador
           item.resolve(res);
         } else {
           geocodeCache[key] = null;
           item.resolve(null);
         }
       }).catch(err => {
-        console.warn('geocode error', err);
+        console.warn('Erro no Geocode de Socorro (Plano B)', err);
         geocodeCache[key] = null;
         item.resolve(null);
-      }).finally(() => setTimeout(next, GEOCODE_DELAY_MS));
+      }).finally(() => {
+        // FREIO DE SEGURANÇA: Espera 1.5 segundos antes de pesquisar o próximo buraco
+        setTimeout(next, 1500);
+      });
   };
   next();
 }
+
 function tryGeocodeIfNeeded(item, onResolved){
   const coords = getCoords(item);
-  if(coords){ if(typeof onResolved === 'function') onResolved(coords); return; }
-  const addr = (item.endereco_completo || item.endereco || item.address || item.full_address || '').trim();
-  if(!addr) { if(typeof onResolved === 'function') onResolved(null); return; }
+  
+  // PLANO A: Se o Google Sheets já mandou a coordenada, usa na hora e não faz nada!
+  if(coords){ 
+    if(typeof onResolved === 'function') onResolved(coords); 
+    return; 
+  }
+  
+  // PLANO B: Se não tem coordenada, aciona o socorro para pesquisar o texto
+  const addr = (item.endereco_completo || item.endereco || '').trim();
+  if(!addr) { 
+    if(typeof onResolved === 'function') onResolved(null); 
+    return; 
+  }
+
   const cacheKey = normalizeAddressKey(addr);
   if(geocodeCache.hasOwnProperty(cacheKey)) {
     const c = geocodeCache[cacheKey];
-    if(c) { if(typeof onResolved === 'function') onResolved({lat: c.lat, lon: c.lon}); else onResolved(null); }
-    else { if(typeof onResolved === 'function') onResolved(null); }
+    if(typeof onResolved === 'function') onResolved(c ? {lat: c.lat, lon: c.lon} : null);
     return;
   }
+
+  // Manda para a Fila Lenta
   geocodeAddress(addr).then(res => {
-    if(res) { if(typeof onResolved === 'function') onResolved({ lat: res.lat, lon: res.lon }); } else { if(typeof onResolved === 'function') onResolved(null); }
+    if(typeof onResolved === 'function') onResolved(res ? { lat: res.lat, lon: res.lon } : null);
   });
 }
 
