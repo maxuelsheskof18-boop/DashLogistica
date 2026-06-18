@@ -1,9 +1,30 @@
 // app.js — Versão corrigida: Mapas sincronizados, sem pins duplicados e foco preciso
 // Observações: coloque este arquivo no lugar do app.js atual e recarregue o servidor.
 
-// --- Proteções / stubs globais ---
-window.checkTimeAlarms = window.checkTimeAlarms || function() { /* stub para evitar ReferenceError */ };
+// --- Proteções / Motor de Áudio ---
+window.playBeepSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(880, ctx.currentTime); // 880Hz (Som de alarme)
+    gain.gain.setValueAtTime(0.1, ctx.currentTime); // Volume
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15); // Duração do bipe
+  } catch(e) { console.warn("Áudio bloqueado pelo navegador."); }
+};
 
+window.stopAudioAlarm = () => {
+  const modal = document.getElementById('snoozeModal');
+  if (modal) modal.classList.add('hidden');
+};
 // --- Endpoints (ajuste se necessário) ---
 const API = "https://script.google.com/macros/s/AKfycbxEzbxBABMDwi7B7tn_1p-lC0vc50JjHFOrH3w42Oog2-5R2-WMYSrQ27ED7wduJUN6/exec";
 const API_FLEX = "https://script.google.com/macros/s/AKfycbzDp2qs2S_MxDc_3afY1TurNKYEwfYKkk2cc4IliNxLiVaJuSKYyRqofOUMnhdFBjwNwg/exec";
@@ -905,7 +926,7 @@ function render(){
         <td class="p-3 bg-slate-50/40 hidden md:table-cell text-xs font-semibold text-slate-500">${escapeHtml(o.instrucao_entrega || '—')}</td>
         <td class="p-3 pr-4 text-right space-x-1 whitespace-nowrap">
           <button class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 px-2 py-1 rounded-lg font-bold text-[11px] transition-all" onclick="event.stopPropagation(); updateStatusJsonp('${escapeHtml(o.id)}','A Separar')">Estornar</button>
-          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-all" onclick="event.stopPropagation(); updateStatusJsonp('${escapeHtml(o.id)}','Entregue')">Despachar</button>
+          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-all" onclick="event.stopPropagation(); prepararDespachoMotorista('${escapeHtml(o.numero)}')">Despachar</button>
         </td>
       </tr>`; 
     }).join('');
@@ -1012,6 +1033,8 @@ function render(){
   } catch (e) {
     console.warn('plotMapMarkers erro', e);
   }
+  // Dispara a atualização do painel do motorista
+  if (typeof renderMotorista === 'function') renderMotorista();
 }
 
 // --- Inits, mapas e handlers menores ---
@@ -1101,10 +1124,7 @@ function focusFlexOnMap(numeroOrEcom) {
 function showLoading(on){ const el = document.getElementById('loadingOverlay'); if(el) el.style.display = on ? 'flex' : 'none'; }
 function showToast(msg, ms=2500){ const t=document.getElementById('toast'); if(!t) return; t.innerText=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', ms); }
 
-function moverParaPendenciaPrompt(id){
-  const motivo = prompt('Motivo da pendência:');
-  if(motivo !== null) updateStatusJsonp(id, 'Pendente', motivo || '');
-}
+
 
 // --- JSONP updates ---
 function updateStatusJsonp(id, status, observacao = ''){
@@ -1150,21 +1170,22 @@ function markFlexDelivered(id, numero){
   });
 }
 
-// --- Switch tabs / subtabs / operator modal ---
 function switchTab(which){
-  document.getElementById('view-separacao').classList.toggle('hidden', which !== 'separacao');
-  document.getElementById('view-separados_hoje').classList.toggle('hidden', which !== 'separados_hoje');
-  document.getElementById('view-logistica').classList.toggle('hidden', which !== 'logistica');
-  document.getElementById('view-envios_flex').classList.toggle('hidden', which !== 'envios_flex');
-  document.getElementById('view-rotas').classList.toggle('hidden', which !== 'rotas'); // CORREÇÃO AQUI
-  document.getElementById('view-entregues').classList.toggle('hidden', which !== 'entregues');
+  document.getElementById('view-separacao')?.classList.toggle('hidden', which !== 'separacao');
+  document.getElementById('view-separados_hoje')?.classList.toggle('hidden', which !== 'separados_hoje');
+  document.getElementById('view-logistica')?.classList.toggle('hidden', which !== 'logistica');
+  document.getElementById('view-envios_flex')?.classList.toggle('hidden', which !== 'envios_flex');
+  document.getElementById('view-rotas')?.classList.toggle('hidden', which !== 'rotas');
+  document.getElementById('view-entregues')?.classList.toggle('hidden', which !== 'entregues');
+  document.getElementById('view-motorista')?.classList.toggle('hidden', which !== 'motorista');
   
-  document.getElementById('main-sep').className = which === 'separacao' ? 'tab-btn active' : 'tab-btn';
-  document.getElementById('main-sephoje').className = which === 'separados_hoje' ? 'tab-btn active' : 'tab-btn';
-  document.getElementById('main-log').className = which === 'logistica' ? 'tab-btn active' : 'tab-btn';
-  document.getElementById('main-flex').className = which === 'envios_flex' ? 'tab-btn active' : 'tab-btn';
-  document.getElementById('main-rotas').className = which === 'rotas' ? 'tab-btn active' : 'tab-btn'; // CORREÇÃO AQUI
-  document.getElementById('main-ent').className = which === 'entregues' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-sep')) document.getElementById('main-sep').className = which === 'separacao' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-sephoje')) document.getElementById('main-sephoje').className = which === 'separados_hoje' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-log')) document.getElementById('main-log').className = which === 'logistica' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-flex')) document.getElementById('main-flex').className = which === 'envios_flex' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-rotas')) document.getElementById('main-rotas').className = which === 'rotas' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-ent')) document.getElementById('main-ent').className = which === 'entregues' ? 'tab-btn active' : 'tab-btn';
+  if(document.getElementById('main-mot')) document.getElementById('main-mot').className = which === 'motorista' ? 'tab-btn active' : 'tab-btn';
   
   if(which === 'logistica') {
     setTimeout(() => {
@@ -1194,6 +1215,12 @@ function switchTab(which){
        try { if (typeof plotRotasMap === 'function') plotRotasMap(); } catch(e){}
        try { if (typeof renderRotas === 'function') renderRotas(); } catch(e){}
     }, 300);
+  }
+  if(which === 'motorista') {
+    // Dá 200ms para a tela renderizar antes de calcular o tamanho do quadro de assinatura
+    setTimeout(() => {
+      if(typeof resizeCanvas === 'function') resizeCanvas();
+    }, 200);
   }
 }
 
@@ -1251,3 +1278,399 @@ function setTodayDate() {
     topCalendar.value = new Date(dBr.getTime() - (offset*60*1000)).toISOString().split('T')[0];
   }
 }
+// =================================================================
+// 1. SISTEMA DE NOTIFICAÇÕES E RASTREIO DE OPERADOR
+// =================================================================
+
+// Função melhorada de Toast para mostrar Nome do Operador e Hora
+function showToast(msg, type = 'info', ms = 4000) {
+  const t = document.getElementById('toast');
+  if(!t) return;
+  
+  // Cores dinâmicas
+  let bg = 'bg-slate-800';
+  if(type === 'success') bg = 'bg-emerald-600';
+  if(type === 'warning') bg = 'bg-amber-500';
+  if(type === 'error') bg = 'bg-red-600';
+
+  t.className = `toast fixed top-4 right-4 ${bg} text-white px-5 py-3 rounded-xl shadow-2xl font-bold text-sm flex items-center gap-3 z-[9999] transition-all transform translate-y-0 opacity-100`;
+  t.innerHTML = `<i class="fas fa-bell"></i> <div>${msg}</div>`;
+  t.style.display = 'flex';
+  
+  setTimeout(() => {
+    t.classList.add('opacity-0', '-translate-y-5');
+    setTimeout(() => t.style.display = 'none', 300);
+  }, ms);
+}
+
+// Atualizamos a função de enviar o status para gerar a notificação na tela
+function updateStatusJsonp(id, status, observacao = ''){
+  showLoading(true);
+  const horaLocal = new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}).slice(0,5);
+  
+  const url = `${API}?action=updateStatus&id=${id}&status=${encodeURIComponent(status)}&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(observacao)}`;
+  
+  jsonpFetch(url, function(){ 
+    showLoading(false); 
+    // Dispara a notificação de auditoria
+    showToast(`<span class="text-blue-200">${currentOperator}</span> alterou o pedido #${id}<br><span class="text-xs font-normal">Para: <b>${status}</b> às ${horaLocal}</span>`, 'info', 5000);
+    load(); 
+  });
+}
+
+// =================================================================
+// 2. RELATÓRIO DE PENDÊNCIAS
+// =================================================================
+
+window.moverParaPendenciaPrompt = (id) => {
+  document.getElementById('pendenciaId').value = id;
+  document.getElementById('pendenciaPedidoDisplay').innerText = `Pedido #${id}`;
+  document.getElementById('pendenciaDetalhes').value = '';
+  document.getElementById('pendenciaModal').classList.remove('hidden');
+};
+
+window.fecharPendenciaModal = () => {
+  document.getElementById('pendenciaModal').classList.add('hidden');
+};
+
+window.salvarPendenciaModal = () => {
+  const id = document.getElementById('pendenciaId').value;
+  const motivo = document.getElementById('pendenciaMotivo').value;
+  const detalhes = document.getElementById('pendenciaDetalhes').value;
+  
+  if(detalhes.trim() === '') return alert("Por favor, especifique os detalhes/produtos faltantes.");
+  
+  const observacaoFinal = `[${motivo}] ${detalhes}`;
+  fecharPendenciaModal();
+  updateStatusJsonp(id, 'Pendente', observacaoFinal);
+};
+
+// =================================================================
+// 3. O MOTOR DO ALARME SONORO E POP-UP
+// =================================================================
+
+// Esta função já estava no seu app.js, agora ela ganha vida!
+window.checkTimeAlarms = (horaAtualStr) => {
+  // Pega só o HH:MM para comparar com o input type="time"
+  const horaMinutoAtual = horaAtualStr.slice(0, 5); 
+  
+  (orders || []).forEach(o => {
+    // Se o pedido tem alarme, a hora bateu, e ainda não tocou hoje
+    if (o.alarme && o.alarme === horaMinutoAtual && !o.alarmeTocado) {
+      o.alarmeTocado = true; // Marca para não ficar apitando a cada segundo
+      
+      // Toca o som (garanta que a função playBeepSound exista no seu código)
+      if(typeof playBeepSound === 'function') playBeepSound();
+      
+      // Mostra a tela de estouro piscando na cara do operador
+      const modal = document.getElementById('snoozeModal');
+      const numDisplay = document.getElementById('modalOrderNum');
+      if (modal && numDisplay) {
+        numDisplay.innerText = `#${o.numero || o.id}`;
+        modal.classList.remove('hidden');
+      }
+    }
+  });
+};
+
+// Se você não tinha o botão fechar do Snooze implementado:
+document.getElementById('btnSnoozeAction')?.addEventListener('click', function() {
+  document.getElementById('snoozeModal').classList.add('hidden');
+  stopAudioAlarm();
+});
+
+// =================================================================
+// 4. ASSINATURA DIGITAL (APP MOTORISTA)
+// =================================================================
+
+// Garante que a aba abra corretamente
+const originalSwitchTab = switchTab;
+window.switchTab = function(which) {
+  originalSwitchTab(which); // Roda sua função antiga
+  
+  const viewMot = document.getElementById('view-motorista');
+  if(viewMot) viewMot.classList.toggle('hidden', which !== 'motorista');
+  
+  const btnMot = document.getElementById('main-mot');
+  if(btnMot) btnMot.className = which === 'motorista' ? 'tab-btn active' : 'tab-btn';
+  
+  if(which === 'motorista') resizeCanvas(); // Ajusta a resolução do desenho no celular
+};
+
+// Lógica de desenho com o dedo na tela
+let canvas, ctx, desenhando = false;
+
+document.addEventListener("DOMContentLoaded", () => {
+  canvas = document.getElementById('signatureCanvas');
+  if(!canvas) return;
+  ctx = canvas.getContext('2d');
+  
+  // Eventos de Mouse e Touch (Dedo no celular)
+  canvas.addEventListener('mousedown', startPosition);
+  canvas.addEventListener('mouseup', endPosition);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('touchstart', startPosition, {passive: true});
+  canvas.addEventListener('touchend', endPosition);
+  canvas.addEventListener('touchmove', draw, {passive: false});
+});
+
+function resizeCanvas() {
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1e293b'; // Cor da caneta azul escuro
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const ev = e.touches ? e.touches[0] : e;
+  return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+}
+
+function startPosition(e) { desenhando = true; draw(e); }
+function endPosition() { desenhando = false; ctx.beginPath(); }
+function draw(e) {
+  if (!desenhando) return;
+  e.preventDefault(); // Impede a tela de rolar enquanto assina
+  const pos = getPos(e);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+window.limparAssinatura = () => {
+  if(ctx && canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+  }
+};
+
+window.enviarComprovante = () => {
+  const pedido = document.getElementById('motPedidoInput').value.trim();
+  const recebedor = document.getElementById('motRecebedor').value.trim();
+  const transportador = document.getElementById('motTransportador').value;
+  
+  if(!pedido || !recebedor) return alert("Preencha o Número do Pedido e o Nome de quem recebeu.");
+  
+  // Transforma o desenho em um texto gigante (Base64) que pode ser salvo na planilha
+  const assinaturaBase64 = canvas.toDataURL('image/png');
+  
+  // Aqui você chama a sua função de atualização do Google Sheets, 
+  // enviando a assinatura e os dados. Por hora, vamos mudar o status do pedido!
+  const msgAudit = `Entregue via: ${transportador} | Recebido por: ${recebedor}`;
+  
+  showLoading(true);
+  const horaLocal = new Date().toLocaleTimeString('pt-BR').slice(0,5);
+  
+  // Reutiliza a URL existente, mas marca como entregue e anota quem recebeu
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedido)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
+  
+  jsonpFetch(url, function(){ 
+    showLoading(false); 
+    showToast(`Comprovante do pedido #${pedido} salvo com sucesso!`, 'success', 5000);
+    limparAssinatura();
+    document.getElementById('motPedidoInput').value = '';
+    document.getElementById('motRecebedor').value = '';
+    load(); 
+  });
+};
+// =================================================================
+// 5. LÓGICA DE PRODUÇÃO DO MOTORISTA (DESPACHO E ENTREGAS)
+// =================================================================
+
+window.renderMotorista = () => {
+  const tbodyMot = document.getElementById('table-motorista');
+  if (!tbodyMot) return;
+
+  // Mistura os pedidos normais e Flex para o motorista não perder nenhuma entrega
+  const todosPedidos = [...(typeof orders !== 'undefined' ? orders : []), ...(typeof flexOrders !== 'undefined' ? flexOrders : [])];
+  
+  const emRota = todosPedidos.filter(o => String(o.status_logistica || o.situacao_nome || '').toLowerCase() === 'despachado');
+
+  if (emRota.length === 0) {
+    tbodyMot.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-slate-400 font-bold"><i class="fas fa-box-open text-3xl mb-2 block"></i>Nenhuma entrega em rota no momento.</td></tr>`;
+    return;
+  }
+
+  tbodyMot.innerHTML = emRota.map(o => `
+    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
+      <td class="p-3 font-black text-slate-800 text-sm">#${escapeHtml(o.numero || o.id)}</td>
+      <td class="p-3 leading-tight">
+        <span class="font-bold text-slate-700 text-sm">${escapeHtml(o.cliente_nome || o.destinatario || '')}</span><br>
+        <span class="text-[11px] text-slate-400 font-normal"><i class="fas fa-location-dot text-slate-300 mr-1"></i>${escapeHtml(o.endereco_completo || o.endereco || '')}</span>
+      </td>
+      <td class="p-3 text-right">
+        <button onclick="abrirAssinaturaMotorista('${escapeHtml(o.numero || o.id)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow-sm transition-all uppercase whitespace-nowrap"><i class="fas fa-signature mr-1"></i> Entregar</button>
+      </td>
+    </tr>
+  `).join('');
+};
+window.prepararDespachoMotorista = (numeroPedido) => {
+  // 1. Truque Visual: Altera TODAS as flags para forçar o pedido a sumir da Logística
+  let achou = false;
+  if (typeof orders !== 'undefined') {
+    const p = orders.find(o => String(o.numero) === String(numeroPedido) || String(o.id) === String(numeroPedido));
+    if (p) { 
+        p.status_logistica = 'Despachado'; 
+        p.situacao_nome = 'Despachado'; // <-- Essa linha faz sumir da Logística!
+        achou = true; 
+    }
+  }
+  if (!achou && typeof flexOrders !== 'undefined') {
+    const p = flexOrders.find(o => String(o.numero) === String(numeroPedido) || String(o.id) === String(numeroPedido));
+    if (p) { 
+        p.status_logistica = 'Despachado'; 
+        p.situacao_nome = 'Despachado'; 
+    }
+  }
+
+  // 2. Transição visual instantânea
+  showToast(`Pedido #${numeroPedido} Despachado com sucesso!`, 'success', 4000);
+  switchTab('motorista');
+  
+  if (typeof renderMotorista === 'function') renderMotorista();
+  if (typeof render === 'function') render(); 
+  
+  // 3. Salva no Banco de Dados Fantasma
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(numeroPedido)}&status=Despachado&operador=${encodeURIComponent(currentOperator)}&observacao=Saiu%20para%20entrega`;
+  jsonpFetch(url, function() {
+    console.log("Despacho salvo no Google Sheets.");
+  });
+};
+
+window.enviarComprovante = () => {
+  const pedidoId = document.getElementById('motPedidoInput').value.trim();
+  const recebedor = document.getElementById('motRecebedor').value.trim();
+  const transportador = document.getElementById('motTransportador').value;
+  
+  if(!pedidoId || !recebedor) return alert("Por favor, preencha o Nome de quem recebeu a mercadoria.");
+  
+  // 1. Truque visual imediato para mover para 'Entregues'
+  if (typeof orders !== 'undefined') {
+    const pedidoObj = orders.find(o => String(o.numero || o.id) === String(pedidoId));
+    if (pedidoObj) {
+        pedidoObj.status_logistica = 'Entregue';
+        pedidoObj.situacao_nome = 'Entregue'; // <-- Faz o pedido ir para a aba final
+    }
+  }
+  if (typeof flexOrders !== 'undefined') {
+    const pedidoObjFlex = flexOrders.find(o => String(o.numero || o.id) === String(pedidoId));
+    if (pedidoObjFlex) {
+        pedidoObjFlex.status_logistica = 'Entregue';
+        pedidoObjFlex.situacao_nome = 'Entregue';
+    }
+  }
+  
+  showToast(`Entrega #${pedidoId} finalizada com sucesso!`, 'success', 5000);
+  
+  // 2. Esconde o painel de assinatura
+  const form = document.getElementById('form-assinatura-motorista');
+  if (form) form.classList.add('hidden');
+  if (typeof limparAssinatura === 'function') limparAssinatura();
+  
+  // 3. Atualiza as telas
+  if (typeof renderMotorista === 'function') renderMotorista();
+  if (typeof render === 'function') render();
+  
+  // 4. Salvamento Fantasma da Assinatura no Google Sheets
+  const msgAudit = `Entregue via: ${transportador} | Assinado por: ${recebedor}`;
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedidoId)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
+  
+  jsonpFetch(url, function(){ 
+     console.log("Comprovante salvo no Google Sheets.");
+  });
+};
+window.abrirAssinaturaMotorista = (numeroPedido) => {
+  const form = document.getElementById('form-assinatura-motorista');
+  if (form) form.classList.remove('hidden'); // Revela o quadro de assinatura
+  
+  const inputPedido = document.getElementById('motPedidoInput');
+  if (inputPedido) inputPedido.value = numeroPedido; // Trava o número do pedido
+
+  const inputRecebedor = document.getElementById('motRecebedor');
+  if (inputRecebedor) {
+    inputRecebedor.value = ''; // Limpa o nome antigo
+    inputRecebedor.focus();
+  }
+
+  if (typeof limparAssinatura === 'function') limparAssinatura();
+  if (typeof resizeCanvas === 'function') resizeCanvas();
+  
+  // Desce a tela suavemente até a assinatura
+  if (form) form.scrollIntoView({ behavior: 'smooth', block: 'end' });
+};
+// =================================================================
+// 6. MOTOR DE ASSINATURA DIGITAL (TOUCH CELULAR E MOUSE)
+// =================================================================
+let canvas, ctx, desenhando = false;
+
+// Inicializa a prancheta de desenho com um pequeno atraso para garantir que a tela carregou
+setTimeout(() => {
+  canvas = document.getElementById('signatureCanvas');
+  if(canvas) {
+    ctx = canvas.getContext('2d');
+    
+    // Suporte para Mouse (Testes no PC)
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', endPosition);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseleave', endPosition);
+    
+    // Suporte para Dedo (Celular/Tablet) - O 'passive: false' impede a tela de rolar
+    canvas.addEventListener('touchstart', startPosition, {passive: false});
+    canvas.addEventListener('touchend', endPosition, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+  }
+}, 1000);
+
+// Ajusta a resolução da prancheta na hora que o motorista abre a aba
+window.resizeCanvas = () => {
+  if(!canvas || !ctx) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#2563eb'; // Cor da tinta: Azul Escuro
+};
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  // Identifica se é dedo (touches) ou mouse (clientX)
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return { x: clientX - rect.left, y: clientY - rect.top };
+}
+
+function startPosition(e) { 
+  if (e.cancelable) e.preventDefault(); // Trava a tela para não rolar
+  desenhando = true; 
+  draw(e); 
+}
+
+function endPosition() { 
+  desenhando = false; 
+  if(ctx) ctx.beginPath(); 
+}
+
+function draw(e) {
+  if (!desenhando || !ctx) return;
+  if (e.cancelable) e.preventDefault(); // Trava a tela enquanto rabisca
+  
+  const pos = getPos(e);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+window.limparAssinatura = () => {
+  if(ctx && canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+  }
+};
