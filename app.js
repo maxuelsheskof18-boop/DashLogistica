@@ -1398,7 +1398,7 @@ window.switchTab = function(which) {
 };
 
 // Lógica de desenho com o dedo na tela
-let canvas, ctx, desenhando = false;
+let canvas2, ctx, desenhando = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   canvas = document.getElementById('signatureCanvas');
