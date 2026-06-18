@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+body { background:#f8fafc !important; color:#0f172a !important; font-family:'Inter', sans-serif !important; }
+.card { background:#ffff !important; border:1px solid #e2e8f0 !important; border-radius:12px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02) !important; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+.card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -4px rgba(0, 0, 0, 0.04) !important; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+.badge-strict-vermelho { background-color: #fef2f2 !important; border: 1px solid #fee2e2 !important; color: #ef4444 !important; }
+.badge-strict-amarelo { background-color: #fffbeb !important; border: 1px solid #fef3c7 !important; color: #f59e0b !important; }
+.badge-strict-verde { background-color: #f0fdf4 !important; border: 1px solid #dcfce7 !important; color: #10b981 !important; }
+.badge-strict-azul { background-color: #f0f9ff !important; border: 1px solid #e0f2fe !important; color: #0284c7 !important; }
+.status-pill { padding:6px 14px !important; border-radius:8px !important; font-weight:700 !important; font-size:11px !important; display:inline-flex !important; align-items:center !important; gap:6px !important; text-transform: uppercase !important; white-space: nowrap !important; letter-spacing: 0.05em; }
+.status-dot { width:7px !important; height:7px !important; border-radius:50% !important; display:inline-block !important; }
+.dot-strict-amarelo { background-color: #f59e0b !important; }
+.dot-strict-verde { background-color: #10b981 !important; }
+.dot-strict-azul { background-color: #0284c7 !important; }
+@keyframes pulse-red { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.25); opacity: 0.5; } }
+.dot-blink-red { animation: pulse-red 1.2s infinite !important; background-color: #ef4444 !important; }
+.tab-nav { border-bottom: 1px solid #e2e8f0 !important; background: #ffff !important; }
+.tab-btn { padding:10px 16px !important; font-weight:600 !important; font-size:14px !important; color:#64748b !important; border-radius: 8px !important; transition: all 0.2s ease !important; margin: 4px 2px; display: inline-flex; align-items: center; gap: 8px; }
+.tab-btn:hover { background: #f1f5f9 !important; color: #334155 !important; }
+.tab-btn.active { color:#ffff !important; background:#004f9f !important; font-weight:700 !important; box-shadow: 0 4px 6px -1px rgba(0, 79, 159, 0.2) !important; }
+#map, #map-flex { height: 420px !important; width: 100% !important; border-radius: 12px !important; border: 1px solid #e2e8f0 !important; z-index: 10 !important; transition: height 220ms ease; }
+@media (min-width: 1024px) { #map, #map-flex { height: 520px !important; } }
+.map-wrapper { position: relative; }
+.map-toolbar { position: absolute; top: 12px; right: 12px; z-index: 1200; display:flex; gap:6px; align-items:center; }
+.map-toolbar button { background: rgba(255,255,255,0.95); border: 1px solid #e2e8f0; padding:8px 10px; border-radius:8px; font-weight:700; color:#0f172a; cursor:pointer; box-shadow:0 4px 6px -1px rgba(0,0,0,0.05); transition: all 0.2s; }
+.map-toolbar button:hover { background: #ffff; transform: translateY(-1px); color: #004f9f; }
+.expanded-map { position: fixed !important; top: 70px !important; left: 20px !important; right: 20px !important; height: calc(100vh - 120px) !important; width: auto !important; z-index: 20000 !important; border-radius: 12px !important; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04) !important; background: white !important; border: 1px solid #cbd5e1 !important; }
+.expanded-map .leaflet-container { border-radius: 12px !important; }
+.marker-cluster-flex { background-color: rgba(245, 158, 11, 0.6) !important; }
+.marker-cluster-flex div { background-color: rgba(217, 119, 6, 0.9) !important; color: white !important; font-weight: 800 !important; border-radius: 15px; font-family: Inter, system-ui, sans-serif; }
+.marker-cluster-main { background-color: rgba(0, 79, 159, 0.4) !important; }
+.marker-cluster-main div { background-color: rgba(0, 79, 159, 0.9) !important; color: white !important; font-weight: 800 !important; border-radius: 15px; font-family: Inter, system-ui, sans-serif; }
+@keyframes blink-red-row { 0% { background-color: rgba(239, 68, 68, 0.02); } 50% { background-color: rgba(239, 68, 68, 0.08); } 100% { background-color: rgba(239, 68, 68, 0.02); } }
+.row-alarm-active { animation: blink-red-row 1.5s infinite !important; border-left: 4px solid #ef4444 !important; }
