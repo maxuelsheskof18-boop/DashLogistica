@@ -885,50 +885,70 @@ function render(){
       </tr>`).join('');
   }
 
-  // Pendências
+// Pendências - Novo Fluxo com Lista, Link do Tiny e Edição
   if (tbodyPend) {
     const pendOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'pendente');
-    tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400 font-semibold">Nenhuma pendência ativa no momento.</td></tr>` : pendOrders.map((o, idx) => `
-      <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} text-xs md:text-sm text-slate-700">
-        <td class="p-3 pl-4 font-bold text-slate-900">#${escapeHtml(o.numero)}</td>
-        <td class="p-3 font-semibold text-slate-800">${escapeHtml(o.cliente_nome)}</td>
-        <td class="p-3"><span class="text-red-700 font-medium bg-red-50/60 border border-red-100 px-3 py-1 rounded-lg inline-flex items-center gap-1.5"><i class="fas fa-circle-exclamation text-xs"></i> ${escapeHtml(o.observacao_logistica || 'Falta de estoque')}</span></td>
-        <td class="p-3 pr-4 text-right"><button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-xs font-bold shadow-sm transition-all" onclick="updateStatusJsonp('${escapeHtml(o.id)}','A Separar')">Liberar</button></td>
-      </tr>`).join('');
-  }
+    tbodyPend.innerHTML = pendOrders.length === 0 ? `<tr><td colspan="4" class="p-4 text-center text-slate-400 font-semibold">Nenhuma pendência ativa no momento.</td></tr>` : pendOrders.map((o, idx) => {
+      
+      const obsOriginal = o.observacao_logistica || o.observacao || '';
+      const hasSolucao = obsOriginal.includes('[Solução]');
+      
+      let inputHtml = '';
+      let btnHtml = '';
 
-  // Logística (ERP prontos)
-  if (tbodyLog) {
-    const prontosOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim().includes('pronto'));
-    const logOrdersPadrao = prontosOrders.filter(o => {
-      const frete = String(o.nomeformafenvio || o.nome_forma_envio || o.forma_envio || '').toLowerCase();
-      return !frete.includes('flex') && !frete.includes('mercado');
-    });
-    tbodyLog.innerHTML = logOrdersPadrao.map((o, idx) => {
-      const ecomRaw = getEcomNum(o) || '';
-      const ecomNorm = normalizeEcomNumber(ecomRaw);
-      const displayDataPrev = (o.data_prevista && String(o.data_prevista).trim()) ? String(o.data_prevista).trim() : '—';
+      if (hasSolucao) {
+          // ETAPA 2: Vendedor já preencheu. Extrai os produtos e o link salvos.
+          const matchSolucao = obsOriginal.split('[Solução]')[1].trim();
+          const partes = matchSolucao.split('[Link]');
+          const solucaoText = partes[0].trim();
+          const linkText = partes[1] ? partes[1].trim() : '';
+
+          // Monta a lista de itens
+          const listItems = solucaoText.split('\n').filter(item => item.trim() !== '').map(item => `<li><i class="fas fa-check text-emerald-500 mr-1"></i> ${escapeHtml(item.trim())}</li>`).join('');
+          
+          inputHtml = `<div class="bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100 w-full">
+                         <ul class="text-xs font-bold text-emerald-700 space-y-1">${listItems}</ul>`;
+          
+          // Se houver link do Tiny cadastrado, renderiza o botão "PEDIDO Atualizado"
+          if (linkText) {
+              inputHtml += `<div class="mt-2.5 border-t border-emerald-200/60 pt-2">
+                              <a href="${escapeHtml(linkText)}" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase tracking-wider inline-flex items-center gap-1.5 shadow-sm transition-all">
+                                <i class="fas fa-file-invoice"></i> PEDIDO Atualizado
+                              </a>
+                            </div>`;
+          }
+          inputHtml += `</div>`;
+
+          btnHtml = `
+            <div class="flex flex-col gap-1.5">
+              <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm transition-all whitespace-nowrap" onclick="updateStatusJsonp('${escapeHtml(o.id)}', 'Pronto p/ Entrega', '${escapeHtml(obsOriginal)}')"><i class="fas fa-box mr-1"></i>Registrar Separado</button>
+              <button class="bg-white hover:bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm transition-all border border-slate-200" onclick="editarSolucaoPendencia('${escapeHtml(o.id)}')"><i class="fas fa-edit mr-1"></i>Alterar Produto</button>
+            </div>`;
+     } else {
+          // ETAPA 1: Lista de produtos + Campo para o link do Tiny ERP (Agora Obrigatório)
+          inputHtml = `
+            <div class="space-y-2 w-full">
+              <textarea id="solucao-${escapeHtml(o.id)}" rows="2" class="w-full bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg text-xs outline-none focus:border-amber-500 focus:bg-white transition-all font-semibold text-slate-800 resize-none" placeholder="Digite os produtos (pressione Enter para listar)"></textarea>
+              <div class="relative">
+                <i class="fas fa-link absolute left-2.5 top-2.5 text-slate-400 text-[10px]"></i>
+                <input type="text" id="link-${escapeHtml(o.id)}" class="w-full bg-slate-50 border border-slate-200 pl-6 pr-3 py-1.5 rounded-lg text-[11px] outline-none focus:border-amber-500 focus:bg-white transition-all font-semibold text-slate-600 font-mono" placeholder="Cole o link do Tiny aqui (OBRIGATÓRIO)">
+              </div>
+            </div>`;
+          btnHtml = `<button class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 rounded-lg text-[11px] font-bold shadow-sm transition-all whitespace-nowrap" onclick="salvarSolucaoPendencia('${escapeHtml(o.id)}')"><i class="fas fa-save mr-1"></i>Salvar Solução</button>`;
+      }
+
+      const motivoExibicao = obsOriginal.split('|')[0] || obsOriginal;
+
       return `
-      <tr id="row-pedido-${escapeHtml(o.id)}" data-num="${escapeHtml(normalizeOrderNumber(o.numero))}" data-ecom="${escapeHtml(ecomNorm)}" class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-slate-100/70 text-xs md:text-sm cursor-pointer" onclick="focusOrderOnMap('${escapeHtml(ecomNorm || normalizeOrderNumber(o.numero))}')">
-        <td class="p-3 pl-4 font-bold text-slate-900">
-          <div class="flex items-center gap-1.5">
-            <span>#${escapeHtml(o.numero)}</span>
-            <button class="ml-2 bg-blue-50 hover:bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-md text-[10px] font-bold inline-flex items-center transition-all border border-blue-200" title="Ver localização do pedido" onclick="event.stopPropagation(); focusOrderOnMap('${escapeHtml(ecomNorm || normalizeOrderNumber(o.numero))}')">
-              <i class="fas fa-crosshairs"></i>
-            </button>
-          </div>
-          <div class="text-[11px] text-slate-400">ecom: ${escapeHtml(ecomNorm || '—')}</div>
-          <div class="text-[12px] text-slate-800 font-semibold mt-1">${escapeHtml(o.cliente_nome || '')}</div>
+      <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} text-xs md:text-sm text-slate-700 hover:bg-slate-100/50">
+        <td class="p-3 pl-4 font-black text-slate-900 align-top">#${escapeHtml(o.numero)}</td>
+        <td class="p-3 align-top">
+          <div class="font-bold text-slate-800 mb-1">${escapeHtml(o.cliente_nome)}</div>
+          <div class="text-red-600 font-medium text-[10px] bg-red-50 inline-block px-2 py-0.5 rounded border border-red-100"><i class="fas fa-circle-exclamation"></i> ${escapeHtml(motivoExibicao)}</div>
         </td>
-        <td class="p-3 text-center font-mono font-bold text-slate-600">${escapeHtml(o.alarme || '—')}</td>
-        <td class="p-3 text-center font-mono font-bold text-slate-600 hidden md:table-cell">${escapeHtml(displayDataPrev)}</td>
-        <td class="p-3"><b class="text-slate-800">${escapeHtml(o.cliente_nome)}</b><div class="text-[11px] text-slate-400 mt-0.5 truncate max-w-xs hidden md:block">${escapeHtml(o.endereco_completo)}</div></td>
-        <td class="p-3 bg-slate-50/40 hidden md:table-cell text-xs font-semibold text-slate-500">${escapeHtml(o.instrucao_entrega || '—')}</td>
-        <td class="p-3 pr-4 text-right space-x-1 whitespace-nowrap">
-          <button class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 px-2 py-1 rounded-lg font-bold text-[11px] transition-all" onclick="event.stopPropagation(); updateStatusJsonp('${escapeHtml(o.id)}','A Separar')">Estornar</button>
-          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-all" onclick="event.stopPropagation(); prepararDespachoMotorista('${escapeHtml(o.numero)}')">Despachar</button>
-        </td>
-      </tr>`; 
+        <td class="p-3 align-top w-2/5">${inputHtml}</td>
+        <td class="p-3 pr-4 text-right align-top">${btnHtml}</td>
+      </tr>`;
     }).join('');
   }
 
@@ -991,14 +1011,39 @@ function render(){
   // Entregues
   if (tbodyEntregues) {
     const entregueOrders = orders.filter(o => String(o.status_logistica || '').toLowerCase().trim() === 'entregue' && (String(o.numero || '').toLowerCase().includes(searchQ) || String(o.cliente_nome || '').toLowerCase().includes(searchQ)));
-    tbodyEntregues.innerHTML = entregueOrders.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400 font-semibold">Nenhum despacho realizado.</td></tr>` : entregueOrders.map((o, idx) => `
+    
+    tbodyEntregues.innerHTML = entregueOrders.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-slate-400 font-semibold">Nenhum despacho realizado.</td></tr>` : entregueOrders.map((o, idx) => {
+      
+      let recNome = o.nome_recebedor;
+      let recDoc = o.doc_recebedor;
+
+      // O "Farejador": se a variável não estiver salva na sessão atual, busca o texto gerado na anotação
+      if (!recNome) {
+         const strTotal = JSON.stringify(o);
+         const match = strTotal.match(/Recebido por:\s*(.*?)\s*\(Doc:\s*(.*?)\)/);
+         if (match) {
+           recNome = match[1].trim();
+           recDoc = match[2].trim();
+         }
+      }
+
+      const displayNome = recNome || '—';
+      const displayDoc = recDoc || '—';
+
+      return `
       <tr class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-slate-100/70 text-xs md:text-sm">
         <td class="p-3 pl-4 font-black text-slate-900">#${escapeHtml(o.numero)}</td>
         <td class="p-3 font-semibold text-slate-800">${escapeHtml(o.cliente_nome)}</td>
-        <td class="p-3 text-xs text-slate-500 hidden md:table-cell">${escapeHtml(o.endereco_completo)}</td>
+        
+        <td class="p-3 hidden md:table-cell">
+          <div class="font-bold text-slate-800 flex items-center gap-1.5"><i class="fas fa-user-check text-blue-500"></i>${escapeHtml(displayNome)}</div>
+          <div class="text-[11px] text-slate-500 mt-0.5 font-mono"><i class="fas fa-id-card text-slate-400 mr-1"></i>Doc: ${escapeHtml(displayDoc)}</div>
+        </td>
+
         <td class="p-3 text-center text-emerald-700 font-mono font-bold">${escapeHtml(o.tempo_separacao || '—')}</td>
         <td class="p-3 pr-4 text-center"><span class="bg-slate-100 text-slate-600 font-bold border border-slate-200 px-3 py-1 rounded-xl text-[10px] uppercase tracking-wider inline-flex items-center gap-1"><i class="fas fa-archive text-slate-400"></i> Finalizado</span></td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
   }
 
   // Sumários
@@ -1171,6 +1216,11 @@ function markFlexDelivered(id, numero){
 }
 
 function switchTab(which){
+  // Adicione junto dos outros classList.toggle
+  document.getElementById('view-tarefas')?.classList.toggle('hidden', which !== 'tarefas');
+  
+  // Adicione junto das trocas de classe dos botões
+  if(document.getElementById('main-tarefas')) document.getElementById('main-tarefas').className = which === 'tarefas' ? 'tab-btn active' : 'tab-btn';
   document.getElementById('view-separacao')?.classList.toggle('hidden', which !== 'separacao');
   document.getElementById('view-separados_hoje')?.classList.toggle('hidden', which !== 'separados_hoje');
   document.getElementById('view-logistica')?.classList.toggle('hidden', which !== 'logistica');
@@ -1450,45 +1500,87 @@ window.limparAssinatura = () => {
 };
 
 window.enviarComprovante = () => {
-  const pedido = document.getElementById('motPedidoInput').value.trim();
+  const pedidoId = document.getElementById('motPedidoInput').value.trim();
   const recebedor = document.getElementById('motRecebedor').value.trim();
+  const documento = document.getElementById('motDocumento').value.trim();
   const transportador = document.getElementById('motTransportador').value;
   
-  if(!pedido || !recebedor) return alert("Preencha o Número do Pedido e o Nome de quem recebeu.");
+  if(!pedidoId || !recebedor) return alert("Por favor, preencha o Nome de quem recebeu a mercadoria.");
   
-  // Transforma o desenho em um texto gigante (Base64) que pode ser salvo na planilha
-  const assinaturaBase64 = canvas.toDataURL('image/png');
-  
-  // Aqui você chama a sua função de atualização do Google Sheets, 
-  // enviando a assinatura e os dados. Por hora, vamos mudar o status do pedido!
-  const msgAudit = `Entregue via: ${transportador} | Recebido por: ${recebedor}`;
+  const docFinal = documento || 'Não informado';
+  const msgAudit = `Entregue via: ${transportador} | Recebido por: ${recebedor} (Doc: ${docFinal})`;
   
   showLoading(true);
-  const horaLocal = new Date().toLocaleTimeString('pt-BR').slice(0,5);
+
+  // Normaliza o ID (tira # e espaços) para não falhar na busca
+  const pIdNorm = String(pedidoId).replace(/[^0-9A-Za-z]/g, '');
+
+  if (typeof orders !== 'undefined') {
+    const pedidoObj = orders.find(o => String(o.numero || o.id).replace(/[^0-9A-Za-z]/g, '') === pIdNorm);
+    if (pedidoObj) {
+        pedidoObj.status_logistica = 'Entregue';
+        pedidoObj.situacao_nome = 'Entregue'; 
+        pedidoObj.nome_recebedor = recebedor;
+        pedidoObj.doc_recebedor = docFinal;
+    }
+  }
   
-  // Reutiliza a URL existente, mas marca como entregue e anota quem recebeu
-  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedido)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
+  if (typeof flexOrders !== 'undefined') {
+    const pedidoObjFlex = flexOrders.find(o => String(o.numero || o.id).replace(/[^0-9A-Za-z]/g, '') === pIdNorm);
+    if (pedidoObjFlex) {
+        pedidoObjFlex.status_logistica = 'Entregue';
+        pedidoObjFlex.situacao_nome = 'Entregue';
+        pedidoObjFlex.nome_recebedor = recebedor;
+        pedidoObjFlex.doc_recebedor = docFinal;
+    }
+  }
+  
+  // Esconde e limpa o formulário
+  const form = document.getElementById('form-assinatura-motorista');
+  if (form) form.classList.add('hidden');
+  document.getElementById('motRecebedor').value = '';
+  document.getElementById('motDocumento').value = '';
+  
+  // Atualiza as tabelas imediatamente
+  if (typeof renderMotorista === 'function') renderMotorista();
+  if (typeof render === 'function') render();
+  
+  // Envia a requisição silenciosa para o ERP/Planilha
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedidoId)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
   
   jsonpFetch(url, function(){ 
-    showLoading(false); 
-    showToast(`Comprovante do pedido #${pedido} salvo com sucesso!`, 'success', 5000);
-    limparAssinatura();
-    document.getElementById('motPedidoInput').value = '';
-    document.getElementById('motRecebedor').value = '';
-    load(); 
+     showLoading(false);
+     showToast(`Entrega #${pedidoId} finalizada com sucesso!`, 'success', 5000);
   });
 };
 // =================================================================
 // 5. LÓGICA DE PRODUÇÃO DO MOTORISTA (DESPACHO E ENTREGAS)
 // =================================================================
 
+// Função Rastreadora: Acha o ID real do banco e a API correta (ERP ou Flex)
+function getOrderAndApi(rawId) {
+    const norm = String(rawId).replace(/[^0-9A-Za-z]/g, '');
+    
+    // 1. Tenta achar no Flex primeiro
+    if (typeof flexOrders !== 'undefined') {
+        const f = flexOrders.find(o => String(o.numero || o.id).replace(/[^0-9A-Za-z]/g, '') === norm || String(o.id).replace(/[^0-9A-Za-z]/g, '') === norm);
+        if (f) return { order: f, api: API_FLEX };
+    }
+    
+    // 2. Tenta achar no ERP
+    if (typeof orders !== 'undefined') {
+        const o = orders.find(x => String(x.numero || x.id).replace(/[^0-9A-Za-z]/g, '') === norm || String(x.id).replace(/[^0-9A-Za-z]/g, '') === norm);
+        if (o) return { order: o, api: API };
+    }
+    
+    return { order: null, api: typeof API !== 'undefined' ? API : '' };
+}
+
 window.renderMotorista = () => {
   const tbodyMot = document.getElementById('table-motorista');
   if (!tbodyMot) return;
 
-  // Mistura os pedidos normais e Flex para o motorista não perder nenhuma entrega
   const todosPedidos = [...(typeof orders !== 'undefined' ? orders : []), ...(typeof flexOrders !== 'undefined' ? flexOrders : [])];
-  
   const emRota = todosPedidos.filter(o => String(o.status_logistica || o.situacao_nome || '').toLowerCase() === 'despachado');
 
   if (emRota.length === 0) {
@@ -1509,98 +1601,285 @@ window.renderMotorista = () => {
     </tr>
   `).join('');
 };
+
 window.prepararDespachoMotorista = (numeroPedido) => {
-  // 1. Truque Visual: Altera TODAS as flags para forçar o pedido a sumir da Logística
-  let achou = false;
-  if (typeof orders !== 'undefined') {
-    const p = orders.find(o => String(o.numero) === String(numeroPedido) || String(o.id) === String(numeroPedido));
-    if (p) { 
-        p.status_logistica = 'Despachado'; 
-        p.situacao_nome = 'Despachado'; // <-- Essa linha faz sumir da Logística!
-        achou = true; 
-    }
-  }
-  if (!achou && typeof flexOrders !== 'undefined') {
-    const p = flexOrders.find(o => String(o.numero) === String(numeroPedido) || String(o.id) === String(numeroPedido));
-    if (p) { 
-        p.status_logistica = 'Despachado'; 
-        p.situacao_nome = 'Despachado'; 
-    }
+  const info = getOrderAndApi(numeroPedido);
+  const realId = info.order ? (info.order.id || info.order.numero) : numeroPedido;
+
+  // 1. Truque Visual Imediato
+  if (info.order) {
+      info.order.status_logistica = 'Despachado';
+      info.order.situacao_nome = 'Despachado';
   }
 
-  // 2. Transição visual instantânea
   showToast(`Pedido #${numeroPedido} Despachado com sucesso!`, 'success', 4000);
   switchTab('motorista');
-  
+
   if (typeof renderMotorista === 'function') renderMotorista();
-  if (typeof render === 'function') render(); 
-  
-  // 3. Salva no Banco de Dados Fantasma
-  const url = `${API}?action=updateStatus&id=${encodeURIComponent(numeroPedido)}&status=Despachado&operador=${encodeURIComponent(currentOperator)}&observacao=Saiu%20para%20entrega`;
+  if (typeof render === 'function') render();
+
+  // 2. Salva no Banco de Dados com o ID exato
+  const url = `${info.api}?action=updateStatus&id=${encodeURIComponent(realId)}&status=Despachado&operador=${encodeURIComponent(currentOperator)}&observacao=Saiu%20para%20entrega`;
+
   jsonpFetch(url, function() {
-    console.log("Despacho salvo no Google Sheets.");
+    console.log("Despacho gravado. ID Real: " + realId);
   });
 };
 
 window.enviarComprovante = () => {
-  const pedidoId = document.getElementById('motPedidoInput').value.trim();
+ const pedidoId = document.getElementById('motPedidoInput').value.trim();
   const recebedor = document.getElementById('motRecebedor').value.trim();
+  const documento = document.getElementById('motDocumento').value.trim();
   const transportador = document.getElementById('motTransportador').value;
   
   if(!pedidoId || !recebedor) return alert("Por favor, preencha o Nome de quem recebeu a mercadoria.");
   
-  // 1. Truque visual imediato para mover para 'Entregues'
-  if (typeof orders !== 'undefined') {
-    const pedidoObj = orders.find(o => String(o.numero || o.id) === String(pedidoId));
-    if (pedidoObj) {
-        pedidoObj.status_logistica = 'Entregue';
-        pedidoObj.situacao_nome = 'Entregue'; // <-- Faz o pedido ir para a aba final
-    }
+  // NOVA TRAVA DE DOCUMENTO AQUI:
+  const docLimpo = documento.replace(/\D/g, ''); // Arranca letras e deixa só números
+  if (docLimpo.length < 8 || docLimpo.length > 14) {
+      return alert("Documento inválido. Digite um RG ou CPF real (mínimo de 8 números).");
   }
-  if (typeof flexOrders !== 'undefined') {
-    const pedidoObjFlex = flexOrders.find(o => String(o.numero || o.id) === String(pedidoId));
-    if (pedidoObjFlex) {
-        pedidoObjFlex.status_logistica = 'Entregue';
-        pedidoObjFlex.situacao_nome = 'Entregue';
-    }
+  showLoading(true);
+
+  const info = getOrderAndApi(pedidoId);
+  const realId = info.order ? (info.order.id || info.order.numero) : pedidoId;
+
+  // 1. Truque visual imediato para mover para Entregues
+  if (info.order) {
+      info.order.status_logistica = 'Entregue';
+      info.order.situacao_nome = 'Entregue'; 
+      info.order.nome_recebedor = recebedor;
+      info.order.doc_recebedor = docFinal;
   }
   
-  showToast(`Entrega #${pedidoId} finalizada com sucesso!`, 'success', 5000);
-  
-  // 2. Esconde o painel de assinatura
+  // 2. Esconde o painel
   const form = document.getElementById('form-assinatura-motorista');
   if (form) form.classList.add('hidden');
-  if (typeof limparAssinatura === 'function') limparAssinatura();
+  document.getElementById('motRecebedor').value = '';
+  document.getElementById('motDocumento').value = '';
   
-  // 3. Atualiza as telas
+  // 3. Atualiza as telas na hora
   if (typeof renderMotorista === 'function') renderMotorista();
   if (typeof render === 'function') render();
   
-  // 4. Salvamento Fantasma da Assinatura no Google Sheets
-  const msgAudit = `Entregue via: ${transportador} | Assinado por: ${recebedor}`;
-  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedidoId)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
+  // 4. Salvamento blindado no Google Sheets
+  const url = `${info.api}?action=updateStatus&id=${encodeURIComponent(realId)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
   
   jsonpFetch(url, function(){ 
-     console.log("Comprovante salvo no Google Sheets.");
+     showLoading(false);
+     showToast(`Entrega #${pedidoId} finalizada com sucesso!`, 'success', 5000);
+     
+     // IMPEDE O REVERT: Força o sistema a ler a planilha atualizada logo após salvar
+     load(); 
   });
 };
+
 window.abrirAssinaturaMotorista = (numeroPedido) => {
   const form = document.getElementById('form-assinatura-motorista');
-  if (form) form.classList.remove('hidden'); // Revela o quadro de assinatura
+  if (form) form.classList.remove('hidden'); 
   
   const inputPedido = document.getElementById('motPedidoInput');
-  if (inputPedido) inputPedido.value = numeroPedido; // Trava o número do pedido
+  if (inputPedido) inputPedido.value = numeroPedido; 
 
   const inputRecebedor = document.getElementById('motRecebedor');
   if (inputRecebedor) {
-    inputRecebedor.value = ''; // Limpa o nome antigo
+    inputRecebedor.value = ''; 
     inputRecebedor.focus();
   }
-
-  if (typeof limparAssinatura === 'function') limparAssinatura();
-  if (typeof resizeCanvas === 'function') resizeCanvas();
   
-  // Desce a tela suavemente até a assinatura
   if (form) form.scrollIntoView({ behavior: 'smooth', block: 'end' });
 };
 // =================================================================
+window.liberarPendenciaPrompt = (id) => {
+  const solucao = prompt("Informe a solução aplicada para liberar este pedido:");
+  
+  if (solucao === null) return; // Se o usuário clicar em 'Cancelar', não faz nada
+  if (solucao.trim() === '') return alert("Operação cancelada: É obrigatório informar a solução para liberar a pendência!");
+
+  const observacaoFinal = `[Resolvido] Solução: ${solucao}`;
+  
+  // Envia para o Sheets mudando o status e salvando a solução
+  updateStatusJsonp(id, 'A Separar', observacaoFinal);
+};
+// Lógica Front-end para Tarefas da Frota
+window.tarefasFrota = [];
+
+window.adicionarTarefaFrota = () => {
+  const tipo = document.getElementById('novaTarefaTipo').value;
+  const desc = document.getElementById('novaTarefaDesc').value.trim();
+  
+  if(!desc) return alert("Descreva o que o motorista vai fazer ou onde vai.");
+  
+  const novaTarefa = {
+    id: Date.now(),
+    tipo: tipo,
+    desc: desc,
+    horaSaida: new Date().toLocaleTimeString('pt-BR').slice(0,5)
+  };
+  
+  window.tarefasFrota.push(novaTarefa);
+  document.getElementById('novaTarefaDesc').value = '';
+  renderTarefasFrota();
+  showToast("Tarefa registrada! Motorista liberado para saída.", "info");
+};
+
+window.concluirTarefaFrota = (id) => {
+  window.tarefasFrota = window.tarefasFrota.filter(t => t.id !== id);
+  renderTarefasFrota();
+  showToast("Tarefa concluída! Motorista retornou.", "success");
+};
+
+window.renderTarefasFrota = () => {
+  const tbody = document.getElementById('table-tarefas');
+  if(!tbody) return;
+  
+  if(window.tarefasFrota.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 font-semibold">Nenhuma tarefa externa em andamento.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = window.tarefasFrota.map(t => `
+    <tr class="hover:bg-slate-50 transition-colors">
+      <td class="p-3 pl-4 font-bold text-teal-700"><i class="fas fa-truck text-slate-400 mr-2"></i>${escapeHtml(t.tipo)}</td>
+      <td class="p-3 font-semibold text-slate-800">${escapeHtml(t.desc)}</td>
+      <td class="p-3 text-center font-mono font-bold text-slate-500">${escapeHtml(t.horaSaida)}</td>
+      <td class="p-3 pr-4 text-right">
+        <button onclick="concluirTarefaFrota(${t.id})" class="bg-slate-100 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 px-3 py-1.5 rounded-lg font-bold text-xs transition-all">Finalizar Retorno</button>
+      </td>
+    </tr>
+  `).join('');
+};
+// IMPORTANTE: Para as tarefas carregarem quando você clica na aba:
+const switchTabBackupTarefas = window.switchTab;
+window.switchTab = function(which) {
+  // Roda a função original (que já tem a lógica do motorista embutida)
+  if (typeof switchTabBackupTarefas === 'function') {
+      switchTabBackupTarefas(which);
+  }
+  
+  // Adiciona a nova lógica da frota
+  if (which === 'tarefas' && typeof renderTarefasFrota === 'function') {
+      renderTarefasFrota();
+  }
+};
+// =================================================================
+// 6. SOLUÇÃO DE PENDÊNCIAS (VENDEDOR)
+// =================================================================
+window.salvarSolucaoPendencia = function(id) {
+  const inputSolucao = document.getElementById(`solucao-${id}`);
+  const inputLink = document.getElementById(`link-${id}`);
+  
+  if(!inputSolucao || !inputSolucao.value.trim()) return alert("Operação cancelada: Informe o produto para continuar!");
+  
+  const solucaoTxt = inputSolucao.value.trim();
+  const linkTxt = inputLink ? inputLink.value.trim() : '';
+  
+  // TRAVA OBRIGATÓRIA: Não deixa avançar sem o link
+  if(!linkTxt) {
+      return alert("Operação cancelada: É OBRIGATÓRIO colar o link do pedido atualizado no Tiny ERP para liberar a separação!");
+  }
+  
+  // Localiza o pedido original para puxar o motivo registrado anteriormente
+  const order = orders.find(o => String(o.id) === String(id) || String(o.numero) === String(id));
+  const currentObs = order ? (order.observacao_logistica || order.observacao || '') : 'Pendente';
+  
+  // Agrupa tudo usando tags invisíveis para o interpretador ler depois
+  const novaObs = `${currentObs} | [Solução] ${solucaoTxt} [Link] ${linkTxt}`;
+  
+  showLoading(true);
+  
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(id)}&status=Pendente&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(novaObs)}`;
+  
+  jsonpFetch(url, function(){
+    showLoading(false);
+    showToast(`Solução registrada. Liberado para separação!`, 'success');
+    load();
+  });
+};
+
+// =================================================================
+// 7. GESTÃO DE TAREFAS DA FROTA
+// =================================================================
+window.tarefasFrota = [];
+
+window.adicionarTarefaFrota = function() {
+  const tipo = document.getElementById('novaTarefaTipo').value;
+  const local = document.getElementById('novaTarefaLocal').value.trim();
+  const endereco = document.getElementById('novaTarefaEndereco').value.trim();
+  const motorista = document.getElementById('novaTarefaMotorista').value.trim();
+  
+  if(!local || !motorista) return alert("Por favor, preencha o Local e o Motorista/Horário.");
+  
+  const novaTarefa = {
+    id: Date.now(),
+    tipo: tipo,
+    local: local,
+    endereco: endereco || '—',
+    motorista: motorista,
+    horaRegistro: new Date().toLocaleTimeString('pt-BR').slice(0,5)
+  };
+  
+  window.tarefasFrota.push(novaTarefa);
+  
+  document.getElementById('novaTarefaLocal').value = '';
+  document.getElementById('novaTarefaEndereco').value = '';
+  document.getElementById('novaTarefaMotorista').value = '';
+  
+  renderTarefasFrota();
+  showToast("Tarefa registrada com sucesso! Motorista liberado.", "info");
+};
+
+window.concluirTarefaFrota = function(id) {
+  window.tarefasFrota = window.tarefasFrota.filter(t => t.id !== id);
+  renderTarefasFrota();
+  showToast("Tarefa concluída! Motorista retornou à base.", "success");
+};
+
+window.renderTarefasFrota = function() {
+  const tbody = document.getElementById('table-tarefas');
+  if(!tbody) return;
+  
+  if(window.tarefasFrota.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 font-semibold">Nenhuma tarefa externa em andamento.</td></tr>`;
+    return;
+  }
+  
+  tbody.innerHTML = window.tarefasFrota.map(t => `
+    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 text-xs md:text-sm">
+      <td class="p-3 pl-4">
+        <div class="font-bold text-teal-700 flex items-center gap-1.5"><i class="fas fa-truck text-slate-400"></i> ${escapeHtml(t.tipo)}</div>
+        <div class="text-slate-800 font-semibold mt-0.5">${escapeHtml(t.local)}</div>
+      </td>
+      <td class="p-3 text-slate-500 font-medium">${escapeHtml(t.endereco)}</td>
+      <td class="p-3 text-center">
+        <div class="inline-flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200">
+          <span class="font-bold text-slate-700">${escapeHtml(t.motorista)}</span>
+          <span class="text-[10px] text-slate-400"><i class="far fa-clock"></i> Reg: ${escapeHtml(t.horaRegistro)}</span>
+        </div>
+      </td>
+      <td class="p-3 pr-4 text-right">
+        <button onclick="concluirTarefaFrota(${t.id})" class="bg-white hover:bg-emerald-50 text-emerald-600 border border-emerald-200 px-4 py-2 rounded-lg font-bold text-[11px] shadow-sm transition-all uppercase"><i class="fas fa-check mr-1"></i> Retornou</button>
+      </td>
+    </tr>
+  `).join('');
+};
+window.editarSolucaoPendencia = function(id) {
+  // Encontra o pedido atual
+  const order = orders.find(o => String(o.id) === String(id) || String(o.numero) === String(id));
+  if (!order) return;
+  
+  const currentObs = order.observacao_logistica || order.observacao || '';
+  
+  // Divide a string no marcador e pega só a primeira parte (o motivo original da falha)
+  const obsLimpa = currentObs.split('| [Solução]')[0].trim();
+  
+  showLoading(true);
+  
+  // Salva na planilha com o status ainda Pendente, mas sem a solução, reabrindo o formulário
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(id)}&status=Pendente&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(obsLimpa)}`;
+  
+  jsonpFetch(url, function(){
+    showLoading(false);
+    load(); // Atualiza a tela
+  });
+};
