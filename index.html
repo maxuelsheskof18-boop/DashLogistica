@@ -5,19 +5,27 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="google" content="notranslate" />
   <title>Vesco Control — Sistema Operacional Integrado</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 3L3 10V22L16 29L29 22V10L16 3Z' fill='%230f172a' stroke='%233b82f6' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M16 16L3 10M16 16L29 10M16 16V29' stroke='%233b82f6' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M9 13L16 19.5L23 13' stroke='%2360a5fa' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 
   <script src="https://cdn.tailwindcss.com"></script>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <!-- Motor de Rotas Gratuito -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body class="flex flex-col min-h-screen notranslate">
 
   <div id="loadingOverlay" class="fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-[9999]" style="display:none;">
     <div class="bg-white p-6 rounded-2xl shadow-xl flex items-center gap-4 border border-slate-100">
-      <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+      <svg class="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
       <span id="loadingText" class="text-base font-bold text-slate-700">Carregando dados...</span>
     </div>
   </div>
@@ -35,7 +43,17 @@
 
   <header class="bg-slate-900 text-white px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3 shadow-md w-full border-b border-slate-800">
     <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
-      <span class="text-base font-black tracking-wider text-blue-400">VESCO CONTROL</span>
+      <div class="flex items-center gap-2.5 cursor-default hover:scale-105 transition-transform">
+        <svg class="w-8 h-8 drop-shadow-md" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 3L3 10V22L16 29L29 22V10L16 3Z" fill="#0f172a" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M16 16L3 10M16 16L29 10M16 16V29" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 13L16 19.5L23 13" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="flex flex-col leading-none">
+          <span class="text-base font-black tracking-widest text-blue-500 uppercase">Vesco</span>
+          <span class="text-[10px] font-bold tracking-[0.2em] text-slate-300 uppercase">Control</span>
+        </div>
+      </div>
       <div class="flex items-center justify-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl text-xs w-full sm:w-auto border border-slate-700">
         <span class="opacity-60"><i class="fas fa-calendar-alt"></i></span>
         <input type="date" id="topCalendar" class="bg-transparent text-white font-bold text-xs outline-none cursor-pointer" onchange="scheduleRender()">
@@ -54,7 +72,7 @@
   <div class="bg-white tab-nav flex flex-col md:flex-row shadow-sm justify-between items-stretch md:items-center px-4 py-1.5 gap-2 w-full">
     <div class="flex justify-start overflow-x-auto whitespace-nowrap scrollbar-none gap-1">
       <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active"><i class="fas fa-pallet"></i>Separação</button>
-      <button onclick="switchTab('separados_hoje')" id="main-sephoje" class="tab-btn"><i class="fas fa-boxes-packing text-orange-500"></i>Separados</button>
+      <button onclick="switchTab('separados_hoje')" id="main-sephoje" class="tab-btn"><i class="fas fa-boxes-packing text-orange-500"></i>Separados (Hoje)</button>
       <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot text-blue-600"></i>Logística</button>
       <button onclick="switchTab('envios_flex')" id="main-flex" class="tab-btn"><i class="fas fa-bolt text-amber-500"></i>Envios Flex</button>
       <button onclick="switchTab('rotas')" id="main-rotas" class="tab-btn"><i class="fas fa-route text-purple-500"></i>Montar Rotas</button>
@@ -71,7 +89,6 @@
   </div>
 
   <main class="p-3 md:p-6 flex-grow w-full max-w-[1800px] mx-auto">
-    
     <section id="view-separacao" class="space-y-4 w-full">
       <div class="card p-3 md:p-5 w-full">
         <div class="flex gap-2 border-b border-slate-100 pb-3 mb-4">
@@ -82,9 +99,13 @@
           <table class="w-full text-left border-collapse min-w-full">
             <thead>
               <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
-                <th class="p-3 pl-4">Status</th><th class="p-3">Pedido #</th><th class="p-3 text-center">Limite Alarme</th>
-                <th class="p-3 text-center hidden md:table-cell">Data Previsão</th><th class="p-3 hidden lg:table-cell">Endereço</th>
-                <th class="p-3">Forma Pag.</th><th class="p-3 pr-4 text-right">Ação</th>
+                <th class="p-3 pl-4">Status</th>
+                <th class="p-3">Pedido #</th>
+                <th class="p-3 text-center">Limite Alarme</th>
+                <th class="p-3 text-center hidden md:table-cell">Data Previsão</th>
+                <th class="p-3 hidden lg:table-cell">Endereço</th>
+                <th class="p-3">Forma Pag.</th>
+                <th class="p-3 pr-4 text-right">Ação</th>
               </tr>
             </thead>
             <tbody id="table-fila" class="divide-y divide-slate-200 text-xs md:text-sm font-medium text-slate-700 bg-white"></tbody>
@@ -94,7 +115,10 @@
           <table class="w-full text-left border-collapse min-w-full">
             <thead>
               <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
-                <th class="p-3 pl-4">Pedido #</th><th class="p-3">Cliente</th><th class="p-3">Motivo Registrado</th><th class="p-3 pr-4 text-right">Ação</th>
+                <th class="p-3 pl-4">Pedido #</th>
+                <th class="p-3">Cliente</th>
+                <th class="p-3">Motivo Registrado</th>
+                <th class="p-3 pr-4 text-right">Ação</th>
               </tr>
             </thead>
             <tbody id="table-pendencias" class="divide-y divide-slate-200 text-xs font-medium text-slate-700 bg-white"></tbody>
@@ -108,8 +132,11 @@
         <table class="w-full text-left border-collapse min-w-full">
           <thead>
             <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
-              <th class="p-3 pl-4">Pedido #</th><th class="p-3">Cliente / Destinatário</th><th class="p-3 text-center">Tempo de Separação</th>
-              <th class="p-3 text-center">Status Interno</th><th class="p-3 pr-4 text-right">Ação</th>
+              <th class="p-3 pl-4">Pedido #</th>
+              <th class="p-3">Cliente / Destinatário</th>
+              <th class="p-3 text-center">Tempo de Separação</th>
+              <th class="p-3 text-center">Status Interno</th>
+              <th class="p-3 pr-4 text-right">Ação</th>
             </tr>
           </thead>
           <tbody id="table-separados-hoje" class="divide-y divide-slate-200 text-xs md:text-sm font-medium text-slate-700 bg-white"></tbody>
@@ -123,24 +150,30 @@
           <table class="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
-                <th class="p-3 pl-4">Pedido #</th><th class="p-3 text-center">Limite Alarme</th><th class="p-3">Destinatário / Cliente</th>
-                <th class="p-3 text-center hidden md:table-cell">Data Prevista</th><th class="p-3 hidden md:table-cell">Condição de Acerto</th><th class="p-3 pr-4 text-right">Ação</th>
+                <th class="p-3 pl-4">Pedido #</th>
+                <th class="p-3 text-center">Limite Alarme</th>
+                <th class="p-3">Destinatário / Cliente</th>
+                <th class="p-3 text-center hidden md:table-cell">Data Prevista</th>
+                <th class="p-3 hidden md:table-cell">Condição de Acerto</th>
+                <th class="p-3 pr-4 text-right">Ação</th>
               </tr>
             </thead>
             <tbody id="table-logistica" class="divide-y divide-slate-200 text-xs md:text-sm font-medium text-slate-700 bg-white"></tbody>
           </table>
         </div>
+
         <div class="card p-4 lg:col-span-2 flex flex-col justify-between relative w-full h-full">
           <div class="mb-3 flex items-center justify-between text-xs font-bold uppercase text-slate-500">
-            <span>Rotas de Tráfego Padrão</span><span class="text-blue-600 font-bold flex items-center gap-1.5"><i class="fas fa-location-dot"></i> Pin Azul = Logística</span>
+            <span>Rotas de Tráfego Padrão</span>
+            <span class="text-blue-600 font-bold flex items-center gap-1.5"><i class="fas fa-location-dot"></i> Pin Azul = Logística</span>
           </div>
           <div class="relative w-full map-wrapper flex-grow rounded-xl overflow-hidden border border-slate-200">
             <div class="map-toolbar">
-              <button onclick="toggleMapExpand('map')"><i class="fas fa-expand"></i></button>
-              <button onclick="changeMapHeight('map', 100)"><i class="fas fa-plus"></i></button>
-              <button onclick="changeMapHeight('map', -100)"><i class="fas fa-minus"></i></button>
+              <button title="Expandir/fechar" onclick="toggleMapExpand('map')"><i class="fas fa-expand"></i></button>
+              <button title="Aumentar altura" onclick="changeMapHeight('map', 100)"><i class="fas fa-plus"></i></button>
+              <button title="Diminuir altura" onclick="changeMapHeight('map', -100)"><i class="fas fa-minus"></i></button>
             </div>
-            <div id="map" style="height: 420px; width: 100%;"></div>
+            <div id="map"></div>
             <div class="absolute bottom-3 right-3 z-[1000] summary-box text-[11px] space-y-1 w-44 text-slate-700 bg-white/95 border border-slate-200 rounded-xl shadow-lg p-3">
               <div class="font-extrabold text-slate-900 border-b border-slate-100 pb-1 mb-1 text-center">Resumo da Frota</div>
               <div class="flex justify-between items-center"><span>A Separar:</span><span class="font-bold text-slate-900" id="sum-separar">0</span></div>
@@ -158,24 +191,30 @@
           <table class="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
-                <th class="p-3 pl-4">Pedido / ID Flex</th><th class="p-3 text-center">Volumes</th><th class="p-3">Destinatário</th>
-                <th class="p-3 text-center hidden md:table-cell">Data Prevista</th><th class="p-3 hidden md:table-cell">Situação / Loja</th><th class="p-3 pr-4 text-right">Status</th>
+                <th class="p-3 pl-4">Pedido / ID Flex</th>
+                <th class="p-3 text-center">Volumes</th>
+                <th class="p-3">Destinatário</th>
+                <th class="p-3 text-center hidden md:table-cell">Data Prevista</th>
+                <th class="p-3 hidden md:table-cell">Situação / Loja</th>
+                <th class="p-3 pr-4 text-right">Status</th>
               </tr>
             </thead>
             <tbody id="table-envios-flex-corpo" class="divide-y divide-slate-200 text-xs md:text-sm font-medium text-slate-700 bg-white"></tbody>
           </table>
         </div>
+
         <div class="card p-4 lg:col-span-2 flex flex-col justify-between relative w-full h-full">
           <div class="mb-3 flex items-center justify-between text-xs font-bold uppercase text-slate-500">
-            <span>Radar Mercado Envios Flex</span><span class="text-amber-500 font-bold flex items-center gap-1.5"><i class="fas fa-bolt"></i> Pin Amarelo = Alvo</span>
+            <span>Radar Mercado Envios Flex</span>
+            <span class="text-amber-500 font-bold flex items-center gap-1.5"><i class="fas fa-bolt"></i> Pin Amarelo = Alvo Flex</span>
           </div>
           <div class="relative w-full map-wrapper flex-grow rounded-xl overflow-hidden border border-slate-200">
             <div class="map-toolbar">
-              <button onclick="toggleMapExpand('map-flex')"><i class="fas fa-expand"></i></button>
-              <button onclick="changeMapHeight('map-flex', 100)"><i class="fas fa-plus"></i></button>
-              <button onclick="changeMapHeight('map-flex', -100)"><i class="fas fa-minus"></i></button>
+              <button title="Expandir/fechar" onclick="toggleMapExpand('map-flex')"><i class="fas fa-expand"></i></button>
+              <button title="Aumentar altura" onclick="changeMapHeight('map-flex', 100)"><i class="fas fa-plus"></i></button>
+              <button title="Diminuir altura" onclick="changeMapHeight('map-flex', -100)"><i class="fas fa-minus"></i></button>
             </div>
-            <div id="map-flex" style="height: 420px; width: 100%;"></div>
+            <div id="map-flex"></div>
             <div class="absolute bottom-3 right-3 z-[1000] summary-box text-[11px] space-y-1 w-48 text-slate-700 bg-white/95 border border-slate-200 rounded-xl shadow-lg p-3">
               <div class="font-extrabold text-slate-900 border-b border-slate-100 pb-1 mb-1 text-center">Frota Envios Flex</div>
               <div class="flex justify-between items-center"><span>Total Rotas Flex:</span><span class="font-bold text-amber-600 text-xs" id="sum-flex-total">0</span></div>
@@ -187,11 +226,14 @@
 
     <section id="view-rotas" class="hidden w-full">
       <div class="grid grid-cols-1 lg:grid-cols-5 gap-5 w-full">
+        
         <div class="card p-3 md:p-4 lg:col-span-3 flex flex-col rounded-xl border border-slate-200 w-full min-h-[500px]">
           <div class="flex justify-between items-center mb-3">
             <h3 class="font-black text-slate-800 uppercase tracking-wide text-xs"><i class="fas fa-list-check text-purple-600 mr-2"></i>Pedidos Disponíveis</h3>
-            <div class="flex gap-2 items-center">
-              <button class="text-[11px] bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1.5 rounded-lg font-bold transition shadow-sm border border-amber-200" onclick="sugerirRotasInteligentes()"><i class="fas fa-magic mr-1"></i> Sugerir Rotas</button>
+            <div class="flex gap-2">
+              <button class="text-[11px] bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg text-amber-800 font-bold transition shadow-sm border border-amber-300 flex items-center gap-1" onclick="sugerirRotasInteligentes()">
+                <i class="fas fa-brain"></i> Sugerir Rotas
+              </button>
               <button class="text-[11px] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-slate-700 font-bold transition shadow-sm border border-slate-200" onclick="selectAllRoute()">Marcar Todos</button>
               <button class="text-[11px] bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg text-slate-700 font-bold transition shadow-sm border border-slate-200" onclick="clearRouteSelection()">Limpar</button>
             </div>
@@ -200,7 +242,10 @@
             <table class="w-full text-left border-collapse min-w-[500px]">
               <thead class="sticky top-0 bg-slate-800 z-10">
                 <tr class="text-white font-bold text-[10px] uppercase tracking-wider">
-                  <th class="p-2.5 text-center w-12">Sel</th><th class="p-2.5">Pedido / E-com</th><th class="p-2.5">Cliente & Endereço</th><th class="p-2.5 text-right pr-4">Status / Origem</th>
+                  <th class="p-2.5 text-center w-12">Sel</th>
+                  <th class="p-2.5">Pedido / E-com</th>
+                  <th class="p-2.5">Cliente & Endereço</th>
+                  <th class="p-2.5 text-right pr-4">Status / Origem</th>
                 </tr>
               </thead>
               <tbody id="table-rotas" class="divide-y divide-slate-200 text-xs text-slate-700 bg-white"></tbody>
@@ -209,66 +254,52 @@
         </div>
 
         <div class="card p-4 lg:col-span-2 flex flex-col relative w-full border border-slate-200 min-h-[500px]">
-          <div class="mb-3 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-slate-500">
-            <span>Planejamento Visual</span><span class="text-purple-600 flex items-center gap-1.5"><i class="fas fa-route"></i> Rota</span>
-          </div>
-          <div class="relative w-full map-wrapper flex-grow rounded-xl overflow-hidden border border-slate-200">
-            <div class="map-toolbar">
-              <button onclick="toggleMapExpand('map-rotas')"><i class="fas fa-expand"></i></button>
-              <button onclick="changeMapHeight('map-rotas', 100)"><i class="fas fa-plus"></i></button>
-              <button onclick="changeMapHeight('map-rotas', -100)"><i class="fas fa-minus"></i></button>
+          
+          <div class="mb-4 flex flex-col gap-3 border-b border-slate-100 pb-4">
+            <div class="flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-slate-500">
+              <span>Planejamento Visual</span>
+              <span class="font-extrabold text-slate-700">Carrinho: <span class="text-purple-600 text-lg" id="rota-count">0</span></span>
             </div>
-            <div id="map-rotas" style="height: 420px; width: 100%; z-index: 10;"></div>
-          </div>
-          <div class="mt-4 bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 shadow-inner">
-            <div class="flex justify-between items-center text-sm border-b border-slate-200 pb-2">
-              <span class="font-extrabold text-slate-700 uppercase tracking-wide text-xs">Itens no Carrinho:</span>
-              <span class="font-black text-3xl text-purple-600" id="rota-count">0</span>
-            </div>
-            <div class="grid grid-cols-2 gap-2 pt-1">
-              <button onclick="gerarRotaWhatsApp()" class="bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-lg font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5"><i class="fab fa-whatsapp text-lg"></i> P/ Motorista</button>
-              <button onclick="gerarRotaMaps()" class="bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5"><i class="fas fa-map-location-dot text-sm"></i> Abrir GPS</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <section id="view-motorista" class="hidden w-full">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 w-full">
-        <div class="card p-3 md:p-5 w-full overflow-x-auto rounded-xl border border-slate-200">
-          <h3 class="font-black text-slate-800 uppercase tracking-wide text-xs mb-4"><i class="fas fa-truck-fast text-blue-600 mr-2"></i>Entregas em Rota</h3>
-          <table class="w-full text-left border-collapse min-w-full">
-            <tbody id="table-motorista" class="divide-y divide-slate-200 text-xs md:text-sm font-medium text-slate-700 bg-white"></tbody>
-          </table>
-        </div>
-        <div id="form-assinatura-motorista" class="card p-4 flex flex-col relative w-full border border-slate-200 hidden">
-          <h3 class="font-black text-slate-800 uppercase tracking-wide text-xs mb-4"><i class="fas fa-signature text-emerald-600 mr-2"></i>Coletar Assinatura</h3>
-          <input type="text" id="motPedidoInput" readonly class="bg-slate-100 border border-slate-200 px-3 py-2 rounded-lg mb-3 font-bold text-slate-700">
-          <input type="text" id="motRecebedor" placeholder="Nome de quem recebeu" class="border border-slate-300 px-3 py-2 rounded-lg mb-3 outline-none focus:border-blue-500">
-          <select id="motTransportador" class="border border-slate-300 px-3 py-2 rounded-lg mb-3 outline-none focus:border-blue-500">
-            <option value="Vesco Frota">Vesco Frota</option>
-            <option value="Lalamove">Lalamove</option>
-            <option value="Correios">Correios</option>
-          </select>
-          <div class="border-2 border-dashed border-slate-300 rounded-xl bg-slate-50 w-full h-64 relative mb-3 touch-none">
-            <canvas id="signatureCanvas" class="w-full h-full absolute inset-0 cursor-crosshair"></canvas>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="gerarRotaWhatsApp()" class="bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg font-bold text-xs shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5">
+                <i class="fab fa-whatsapp text-lg"></i> P/ Motorista
+              </button>
+              <button onclick="tracarRotaInterna()" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5">
+                <i class="fas fa-route text-sm"></i> Traçar Rota
+              </button>
+            </div>
+
+            <button id="btn-info-rota" onclick="toggleInstrucoesRota()" class="hidden w-full bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 py-1.5 rounded-lg font-bold text-[11px] transition-all flex items-center justify-center gap-1.5">
+                <i class="fas fa-list-ol"></i> Obter informações da rota
+            </button>
           </div>
-          <div class="flex gap-2">
-            <button onclick="limparAssinatura()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-lg font-bold w-1/3 transition-all">Limpar</button>
-            <button onclick="enviarComprovante()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold w-2/3 shadow-md transition-all">Confirmar Entrega</button>
+          
+          <div class="relative w-full map-wrapper rounded-xl overflow-hidden border border-slate-200">
+            <div class="map-toolbar">
+              <button title="Expandir/fechar" onclick="toggleMapExpand('map-rotas')"><i class="fas fa-expand"></i></button>
+              <button title="Aumentar altura" onclick="changeMapHeight('map-rotas', 100)"><i class="fas fa-plus"></i></button>
+              <button title="Diminuir altura" onclick="changeMapHeight('map-rotas', -100)"><i class="fas fa-minus"></i></button>
+            </div>
+            <div id="map-rotas" style="height: 400px; width: 100%; z-index: 10;"></div>
           </div>
+          
         </div>
       </div>
     </section>
+          
+
 
     <section id="view-entregues" class="hidden w-full">
       <div class="card p-3 md:p-5 w-full overflow-x-auto rounded-xl border border-slate-200">
         <table class="w-full text-left border-collapse min-w-full">
           <thead>
             <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
-              <th class="p-3 pl-4">Pedido #</th><th class="p-3">Cliente / Destinatário</th><th class="p-3 hidden md:table-cell">Endereço de Entrega Final</th>
-              <th class="p-3 text-center">Tempo</th><th class="p-3 pr-4 text-center">Status</th>
+              <th class="p-3 pl-4">Pedido #</th>
+              <th class="p-3">Cliente / Destinatário</th>
+              <th class="p-3 hidden md:table-cell">Endereço de Entrega Final</th>
+              <th class="p-3 text-center">Tempo</th>
+              <th class="p-3 pr-4 text-center">Status</th>
             </tr>
           </thead>
           <tbody id="table-entregues" class="divide-y divide-slate-200 text-xs md:text-sm font-medium text-slate-700 bg-white"></tbody>
@@ -279,8 +310,40 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+  <script type="module">
+    // Importa as funções direto do servidor do Google
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
+    
+    // Se for usar o Banco de Dados em Tempo Real, já deixamos engatilhado:
+    // import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDvQhoV0x6B9cTnouzvOxyfqXRtsG2nKq0",
+      authDomain: "dashlogistica-49689.firebaseapp.com",
+      databaseURL: "https://dashlogistica-49689-default-rtdb.firebaseio.com",
+      projectId: "dashlogistica-49689",
+      storageBucket: "dashlogistica-49689.firebasestorage.app",
+      messagingSenderId: "833809141353",
+      appId: "1:833809141353:web:c92b18ee10d9fc91c29cf8",
+      measurementId: "G-NRYTBELTJ0"
+    };
+
+    // Inicializa o Firebase
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+
+    // Torna o app globalmente acessível caso o app.js precise conversar com ele
+    window.firebaseApp = app;
+    
+    console.log("🔥 Firebase conectado com sucesso!");
+  </script>
 
   <script src="./app.js"></script>
+  <script src="./rotas.js"></script>
+
 
   <div id="snoozeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[9999] hidden p-4">
     <div class="bg-white border border-slate-100 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
@@ -291,4 +354,102 @@
     </div>
   </div>
 </body>
+<div id="pendenciaModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[6000] hidden p-4">
+    <div class="bg-white p-6 rounded-2xl max-w-md w-full space-y-4 shadow-2xl border border-slate-100">
+      <div class="flex items-center gap-3 border-b border-slate-100 pb-3">
+        <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-lg"><i class="fas fa-triangle-exclamation"></i></div>
+        <div>
+          <h3 class="text-lg font-black text-slate-800 leading-none">Registrar Pendência</h3>
+          <span class="text-xs text-slate-500 font-bold" id="pendenciaPedidoDisplay">#---</span>
+        </div>
+      </div>
+      <input type="hidden" id="pendenciaId">
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Motivo Principal</label>
+          <select id="pendenciaMotivo" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-semibold outline-none focus:border-amber-500 focus:bg-white transition-all">
+            <option value="Não tem o produto">Falta de Estoque (Não tem o produto)</option>
+            <option value="Entregou faltando">Separação Incompleta (Entregou faltando)</option>
+            <option value="Entrega parcial">Acordo com o Cliente (Entrega parcial)</option>
+            <option value="Outros">Outros motivos</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wide mb-1">Produtos Faltantes / Detalhes</label>
+          <textarea id="pendenciaDetalhes" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm outline-none focus:border-amber-500 focus:bg-white transition-all resize-none" placeholder="Especifique os itens exatos ou o motivo..."></textarea>
+        </div>
+      </div>
+      
+      <div class="flex gap-2 pt-2">
+        <button onclick="fecharPendenciaModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-xl font-bold text-sm transition-all">Cancelar</button>
+        <button onclick="salvarPendenciaModal()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl font-bold text-sm shadow-md shadow-amber-500/20 transition-all">Registrar Falha</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="view-motorista" class="hidden w-full max-w-4xl mx-auto mt-4 space-y-4">
+    
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-5">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3 mb-3">
+        <h2 class="text-lg font-black text-slate-800 uppercase tracking-wide"><i class="fas fa-motorcycle text-blue-600 mr-2"></i>Pedidos em Rota (Despachados)</h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-full">
+          <thead>
+            <tr class="text-slate-500 font-bold text-[10px] uppercase tracking-wider border-b border-slate-200 bg-slate-50">
+              <th class="p-3">Pedido #</th>
+              <th class="p-3">Destinatário & Endereço</th>
+              <th class="p-3 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="table-motorista" class="divide-y divide-slate-100 text-sm font-medium text-slate-700">
+            <tr><td colspan="3" class="p-8 text-center text-slate-400 font-bold"><i class="fas fa-box-open text-3xl mb-2 block"></i>Nenhuma entrega em rota no momento.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <div id="form-assinatura-motorista" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-6 hidden transition-all">
+      <div class="text-center border-b border-slate-100 pb-4 flex justify-between items-center">
+        <h2 class="text-xl font-black text-slate-800 uppercase tracking-wide"><i class="fas fa-signature text-blue-600 mr-2"></i>Comprovante de Entrega</h2>
+        <button onclick="document.getElementById('form-assinatura-motorista').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Pedido Selecionado</label>
+            <input type="text" id="motPedidoInput" class="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-sm font-bold text-blue-600 cursor-not-allowed" readonly>
+          </div>
+          <div>
+            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Transportador</label>
+            <select id="motTransportador" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-bold">
+              <option value="Frota Interna Vesco">Frota Interna Vesco</option>
+              <option value="Lalamove">Lalamove</option>
+              <option value="Loggi">Loggi</option>
+              <option value="Motoboy Terceirizado">Motoboy Terceirizado</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nome de quem recebeu</label>
+          <input type="text" id="motRecebedor" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-bold border-l-4 border-l-blue-500" placeholder="Ex: João Silva (Porteiro)">
+        </div>
+
+        <div>
+          <div class="flex justify-between items-end mb-1">
+            <label class="block text-[11px] font-bold text-slate-500 uppercase">Assinatura Digital (Colete com o dedo)</label>
+            <button onclick="limparAssinatura()" class="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded uppercase">Limpar Desenho</button>
+          </div>
+          <canvas id="signatureCanvas" class="w-full h-40 bg-slate-50 border-2 border-dashed border-slate-300 rounded-xl touch-none cursor-crosshair shadow-inner"></canvas>
+        </div>
+
+        <button onclick="enviarComprovante()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black text-base shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2">
+          <i class="fas fa-check-circle"></i> Confirmar Entrega
+        </button>
+      </div>
+    </div>
+  </section>
 </html>
