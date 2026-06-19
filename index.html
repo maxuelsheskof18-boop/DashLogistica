@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <meta name="google" content="notranslate" />
   <title>Vesco Control — Sistema Operacional Integrado</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M16 3L3 10V22L16 29L29 22V10L16 3Z' fill='%230f172a' stroke='%233b82f6' stroke-width='3' stroke-linejoin='round'/%3E%3Cpath d='M16 16L3 10M16 16L29 10M16 16V29' stroke='%233b82f6' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M9 13L16 19.5L23 13' stroke='%2360a5fa' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 
   <script src="https://cdn.tailwindcss.com"></script>
 
@@ -42,7 +43,17 @@
 
   <header class="bg-slate-900 text-white px-4 py-3 flex flex-col md:flex-row justify-between items-center gap-3 shadow-md w-full border-b border-slate-800">
     <div class="flex flex-col sm:flex-row items-center gap-3 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
-      <span class="text-base font-black tracking-wider text-blue-400">VESCO CONTROL</span>
+      <div class="flex items-center gap-2.5 cursor-default hover:scale-105 transition-transform">
+        <svg class="w-8 h-8 drop-shadow-md" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 3L3 10V22L16 29L29 22V10L16 3Z" fill="#0f172a" stroke="#3b82f6" stroke-width="2.5" stroke-linejoin="round"/>
+          <path d="M16 16L3 10M16 16L29 10M16 16V29" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 13L16 19.5L23 13" stroke="#60a5fa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div class="flex flex-col leading-none">
+          <span class="text-base font-black tracking-widest text-blue-500 uppercase">Vesco</span>
+          <span class="text-[10px] font-bold tracking-[0.2em] text-slate-300 uppercase">Control</span>
+        </div>
+      </div>
       <div class="flex items-center justify-center gap-2 bg-slate-800 px-3 py-1.5 rounded-xl text-xs w-full sm:w-auto border border-slate-700">
         <span class="opacity-60"><i class="fas fa-calendar-alt"></i></span>
         <input type="date" id="topCalendar" class="bg-transparent text-white font-bold text-xs outline-none cursor-pointer" onchange="scheduleRender()">
@@ -65,6 +76,7 @@
       <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot text-blue-600"></i>Logística</button>
       <button onclick="switchTab('envios_flex')" id="main-flex" class="tab-btn"><i class="fas fa-bolt text-amber-500"></i>Envios Flex</button>
       <button onclick="switchTab('rotas')" id="main-rotas" class="tab-btn"><i class="fas fa-route text-purple-500"></i>Montar Rotas</button>
+      <button onclick="switchTab('motorista')" id="main-mot" class="tab-btn"><i class="fas fa-motorcycle text-slate-600"></i>App Motorista</button>
       <button onclick="switchTab('entregues')" id="main-ent" class="tab-btn"><i class="fas fa-circle-check text-emerald-500"></i>Entregues</button>
     </div>
     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pb-1 md:pb-0">
@@ -329,18 +341,10 @@
     console.log("🔥 Firebase conectado com sucesso!");
   </script>
 
-  <script src="./app.js"></script>
-  <script src="./rotas.js"></script>
-</body>
-</html>
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <div id="snoozeModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[9999] hidden p-4">
-    <div class="bg-white border border-slate-100 p-6 rounded-2xl max-w-sm w-full text-center space-y-4 shadow-2xl animate-bounce">
-      <div class="text-red-500 text-5xl"><i class="fa-solid fa-clock"></i></div>
-      <h3 class="text-xl font-black text-slate-800 uppercase tracking-wide">Estouro de Prazo!</h3>
-      <p class="text-sm text-slate-500 font-medium">O pedido crítico <span id="modalOrderNum" class="text-red-500 font-extrabold text-base">#---</span> ultrapassou o limite operacional de separação.</p>
-      <button id="btnSnoozeAction" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-amber-500/10 transition-all">ADIAR POR 10 MINUTOS</button>
-    </div>
-  </div>
+  <script src="./app.js"></script>
+  <div id="snoozeModal" ...>>
 </body>
 </html>
