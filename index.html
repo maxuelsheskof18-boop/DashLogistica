@@ -74,6 +74,7 @@
       <button onclick="switchTab('separacao')" id="main-sep" class="tab-btn active"><i class="fas fa-pallet"></i>Separação</button>
       <button onclick="switchTab('separados_hoje')" id="main-sephoje" class="tab-btn"><i class="fas fa-boxes-packing text-orange-500"></i>Separados (Hoje)</button>
       <button onclick="switchTab('logistica')" id="main-log" class="tab-btn"><i class="fas fa-map-location-dot text-blue-600"></i>Logística</button>
+      <button onclick="switchTab('tarefas')" id="main-tarefas" class="tab-btn"><i class="fas fa-clipboard-list text-teal-600"></i>Tarefas Frota</button>
       <button onclick="switchTab('envios_flex')" id="main-flex" class="tab-btn"><i class="fas fa-bolt text-amber-500"></i>Envios Flex</button>
       <button onclick="switchTab('rotas')" id="main-rotas" class="tab-btn"><i class="fas fa-route text-purple-500"></i>Montar Rotas</button>
       <button onclick="switchTab('motorista')" id="main-mot" class="tab-btn"><i class="fas fa-motorcycle text-slate-600"></i>App Motorista</button>
@@ -116,9 +117,9 @@
             <thead>
               <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
                 <th class="p-3 pl-4">Pedido #</th>
-                <th class="p-3">Cliente</th>
-                <th class="p-3">Motivo Registrado</th>
-                <th class="p-3 pr-4 text-right">Ação</th>
+                <th class="p-3">Cliente & Motivo</th>
+                <th class="p-3">Solução (Produto p/ Repor)</th>
+                <th class="p-3 pr-4 text-right">Ação Logística</th>
               </tr>
             </thead>
             <tbody id="table-pendencias" class="divide-y divide-slate-200 text-xs font-medium text-slate-700 bg-white"></tbody>
@@ -297,7 +298,7 @@
             <tr class="text-white font-bold text-xs bg-slate-800 border-b border-slate-700 uppercase">
               <th class="p-3 pl-4">Pedido #</th>
               <th class="p-3">Cliente / Destinatário</th>
-              <th class="p-3 hidden md:table-cell">Endereço de Entrega Final</th>
+              <th class="p-3 hidden md:table-cell">Recebedor & Documento</th>
               <th class="p-3 text-center">Tempo</th>
               <th class="p-3 pr-4 text-center">Status</th>
             </tr>
@@ -308,6 +309,54 @@
     </section>
   </main>
 
+  <<section id="view-tarefas" class="hidden w-full space-y-4">
+      <div class="card p-4 md:p-6 w-full">
+        <h2 class="text-lg font-black text-slate-800 uppercase tracking-wide mb-4 border-b border-slate-100 pb-2"><i class="fas fa-truck-fast text-teal-600 mr-2"></i>Registrar Nova Tarefa Externa</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+          <div class="md:col-span-1">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Tipo</label>
+            <select id="novaTarefaTipo" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none focus:border-teal-500">
+              <option>Retirada (Fornecedor)</option>
+              <option>Manutenção</option>
+              <option>Abastecimento</option>
+              <option>Outros</option>
+            </select>
+          </div>
+          <div class="md:col-span-1">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Local / Empresa</label>
+            <input type="text" id="novaTarefaLocal" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none focus:border-teal-500" placeholder="Ex: Gráfica Brás">
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Endereço</label>
+            <input type="text" id="novaTarefaEndereco" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none focus:border-teal-500" placeholder="Rua, Número, Bairro...">
+          </div>
+          <div class="md:col-span-1">
+            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Motorista & Hora</label>
+            <input type="text" id="novaTarefaMotorista" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs font-bold outline-none focus:border-teal-500" placeholder="Ex: Carlos - 14:30">
+          </div>
+          <div class="md:col-span-1">
+            <button onclick="adicionarTarefaFrota()" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 rounded-lg font-bold text-xs shadow-md transition-all">Registrar Saída</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-3 md:p-5 w-full overflow-x-auto rounded-xl border border-slate-200">
+        <table class="w-full text-left border-collapse min-w-full">
+          <thead>
+            <tr class="text-white font-bold text-[10px] bg-slate-800 border-b border-slate-700 uppercase tracking-wider">
+              <th class="p-3 pl-4">Tarefa & Local</th>
+              <th class="p-3">Endereço</th>
+              <th class="p-3 text-center">Motorista & Hora</th>
+              <th class="p-3 pr-4 text-right">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="table-tarefas" class="divide-y divide-slate-200 text-xs font-medium text-slate-700 bg-white">
+            <tr><td colspan="4" class="p-6 text-center text-slate-400 font-semibold">Nenhuma tarefa externa em andamento.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
@@ -411,11 +460,19 @@
       </div>
     </div>
 
-  <div id="form-assinatura-motorista" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-6 hidden transition-all">
-      <div class="text-center border-b border-slate-100 pb-4 flex justify-between items-center">
-        <h2 class="text-xl font-black text-slate-800 uppercase tracking-wide"><i class="fas fa-signature text-blue-600 mr-2"></i>Comprovante de Entrega</h2>
-        <button onclick="document.getElementById('form-assinatura-motorista').classList.add('hidden')" class="text-slate-400 hover:text-red-500"><i class="fas fa-times text-xl"></i></button>
-      </div>
+  <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Nome de quem recebeu</label>
+          <input type="text" id="motRecebedor" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-bold border-l-4 border-l-blue-500" placeholder="Ex: João Silva (Porteiro)">
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Documento (RG ou CPF)</label>
+          <input type="text" id="motDocumento" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-sm font-bold" placeholder="Apenas números">
+        </div>
+
+        <button onclick="enviarComprovante()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3.5 rounded-xl font-black text-base shadow-lg shadow-emerald-500/30 transition-all flex items-center justify-center gap-2 mt-4">
+          <i class="fas fa-check-circle"></i> Confirmar Entrega
+        </button>
 
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
