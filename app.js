@@ -978,6 +978,10 @@ function render(){
         const dataPrev = f.data_prevista || '—';
         const situacaoFlex = f.situacao_nome || f.situacao || '—';
         const focusId = escapeHtml(normalizeEcomNumber(numeroEcom) || normalizeOrderNumber(numeroDoc));
+        
+        // Pega o valor que já vem formatado do Google Sheets
+        const valorDisplay = f.valor && f.valor !== '—' && f.valor !== '' ? f.valor : 'R$ 0,00';
+        const produtosDisplay = f.produtos && f.produtos !== '—' && f.produtos !== '' ? f.produtos : 'Sincronize para ver os itens...';
 
         return `
           <tr data-num="${escapeHtml(normalizeOrderNumber(f.numero || ''))}" data-ecom="${escapeHtml(normalizeEcomNumber(numeroEcom))}" class="${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'} hover:bg-slate-100/70 text-xs md:text-sm text-slate-700 cursor-pointer" onclick="focusFlexOnMap('${focusId}')">
@@ -994,7 +998,13 @@ function render(){
             <td class="p-3">
               <b class="text-slate-900">${escapeHtml(clienteNome)}</b>
               <div class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(addrDisplay)}</div>
-              <div class="text-[10px] text-slate-400 mt-1 font-medium">Loja: <b>${escapeHtml(lojaNome)}</b></div>
+              <div class="flex items-center gap-3 text-[10px] text-slate-500 mt-1.5 font-medium">
+                 <span>Loja: <b class="text-slate-700">${escapeHtml(lojaNome)}</b></span>
+                 <span>Valor: <b class="text-emerald-600">${escapeHtml(valorDisplay)}</b></span>
+              </div>
+              <div class="text-[10px] text-blue-700 mt-2 font-bold leading-tight bg-blue-50/80 p-1.5 rounded border border-blue-100 inline-block w-full">
+                <i class="fas fa-box-open mr-1 text-blue-500"></i> ${escapeHtml(produtosDisplay)}
+              </div>
             </td>
             <td class="p-3 text-center hidden md:table-cell"><span class="font-mono text-slate-700 font-bold">${escapeHtml(dataPrev)}</span></td>
             <td class="p-3 hidden md:table-cell">${escapeHtml(situacaoFlex)}</td>
