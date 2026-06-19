@@ -1606,7 +1606,7 @@ window.abrirAssinaturaMotorista = (numeroPedido) => {
 // =================================================================
 // 6. MOTOR DE ASSINATURA DIGITAL (TOUCH CELULAR E MOUSE)
 // =================================================================
-let canvas, ctx, desenhando = false;
+let canvas2, ctx, desenhando = false;
 
 // Inicializa a prancheta de desenho com um pequeno atraso para garantir que a tela carregou
 setTimeout(() => {
