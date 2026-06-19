@@ -1,31 +1,32 @@
-// app.js — Versão corrigida: Mapas sincronizados, sem pins duplicados e foco preciso
-// Observações: coloque este arquivo no lugar do app.js atual e recarregue o servidor.
+// app.js — Versão Final: Código Limpo, Mapas e Rotas (Sem duplicidades)
 
-// --- Proteções / Motor de Áudio ---
+// --- Motor de Áudio (Bipe) ---
 window.playBeepSound = () => {
-  try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(880, ctx.currentTime); // 880Hz (Som de alarme)
-    gain.gain.setValueAtTime(0.1, ctx.currentTime); // Volume
-    
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15); // Duração do bipe
-  } catch(e) { console.warn("Áudio bloqueado pelo navegador."); }
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+    } catch(e) { console.warn("Áudio bloqueado pelo navegador."); }
 };
 
 window.stopAudioAlarm = () => {
-  const modal = document.getElementById('snoozeModal');
-  if (modal) modal.classList.add('hidden');
+    const modal = document.getElementById('snoozeModal');
+    if (modal) modal.classList.add('hidden');
 };
-// --- Endpoints (ajuste se necessário) ---
+window.checkTimeAlarms = window.checkTimeAlarms || function() {};
+
+// --- Endpoints ---
 const API = "https://script.google.com/macros/s/AKfycbxEzbxBABMDwi7B7tn_1p-lC0vc50JjHFOrH3w42Oog2-5R2-WMYSrQ27ED7wduJUN6/exec";
 const API_FLEX = "https://script.google.com/macros/s/AKfycbzDp2qs2S_MxDc_3afY1TurNKYEwfYKkk2cc4IliNxLiVaJuSKYyRqofOUMnhdFBjwNwg/exec";
 
@@ -33,13 +34,17 @@ const API_FLEX = "https://script.google.com/macros/s/AKfycbzDp2qs2S_MxDc_3afY1Tu
 let orders = [];
 let flexOrders = [];
 let currentOperator = localStorage.getItem('vesco_operator') || '';
-let map, mapFlex, markerCluster, markerClusterFlex;
+let map, mapFlex, mapRotas, markerCluster, markerClusterFlex, markerClusterRotas;
 let renderTimer = null;
 let geocodeCache = {};
 let geocodeQueue = [];
 let geocodeProcessing = false;
-let currentMapRenderToken = 0; // Previne pins duplicados (Async Bleeding)
-const GEOCODE_DELAY_MS = 1100; // delay entre requisições Nominatim
+let currentMapRenderToken = 0;
+const GEOCODE_DELAY_MS = 1100;
+
+// Estado do Roteirizador
+let routeSelection = new Set();
+let routeEligible = [];
 
 const DEBUG_DATES = (new URLSearchParams(window.location.search)).get('debug_dates') === '1';
 
@@ -48,7 +53,12 @@ function scheduleRender() {
   if (renderTimer) clearTimeout(renderTimer);
   renderTimer = setTimeout(render, 60);
 }
-function escapeHtml(t){ if(t === null || t === undefined) return ''; return String(t).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
+function escapeHtml(text) {
+  if (text == null) return '';
+  return String(text).replace(/[&<>"']/g, function(m) {
+      return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[m];
+  });
+}
 function normalizeOrderNumber(n){
   if(n === null || n === undefined) return '';
   let s = String(n).trim();
@@ -95,9 +105,8 @@ function getCoords(item) {
 }
 
 // -------------------------
-// DATA: FUNÇÃO DEFINITIVA
+// DATA E EXTRAÇÃO
 // -------------------------
-
 function excelSerialToDate(serial) {
   const days = Number(serial);
   if (!Number.isFinite(days)) return null;
@@ -118,11 +127,7 @@ function formatToDDMMYYYY(d){
 function extractFirstDateLikeString(s){
   if(!s) return '';
   const str = String(s);
-  const regexes = [
-    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/, 
-    /(\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/,   
-    /(\d{10,13})/                          
-  ];
+  const regexes = [ /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/, /(\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2})/, /(\d{10,13})/ ];
   for(const r of regexes){
     const m = str.match(r);
     if(m) return m[1];
@@ -171,10 +176,7 @@ function parseAnyDateValue(v){
 
 function extractDateDefinitive(input){
   if(input && typeof input === 'object' && !Array.isArray(input)) {
-    const preferredKeys = [
-      'data_prevista','data','data_previsao','data_previsão','previsao','dataentrega',
-      'deliverydate','expecteddate','dateexpected','eta','scheduled','scheduledat','data_prev'
-    ];
+    const preferredKeys = ['data_prevista','data','data_previsao','data_previsão','previsao','dataentrega','deliverydate','expecteddate','dateexpected','eta','scheduled','scheduledat','data_prev'];
     for(const k of preferredKeys){
       for(const key in input){
         if(!Object.prototype.hasOwnProperty.call(input, key)) continue;
@@ -206,40 +208,6 @@ function extractDateDefinitive(input){
         if(parsed) return formatToDDMMYYYY(parsed);
       }
     }
-    try {
-      const all = JSON.stringify(input);
-      const substr = extractFirstDateLikeString(all);
-      if(substr) {
-        const parsed = parseAnyDateValue(substr);
-        if(parsed) return formatToDDMMYYYY(parsed);
-      }
-    } catch(e){}
-    return '';
-  }
-  if(Array.isArray(input) && input.length > 0 && Array.isArray(input[0])) {
-    const header = input[0].map(h => String(h || '').trim());
-    const headerNorm = header.map(h => h.toLowerCase().replace(/[^a-z0-9]/g,''));
-    const dateCandidates = ['dataprevista','data_prevista','data','previsao','dataentrega','deliverydate','expecteddate','eta','scheduled'];
-    let idx = -1;
-    for(let i=0;i<headerNorm.length;i++) if(dateCandidates.includes(headerNorm[i])) { idx = i; break; }
-    if(idx === -1) {
-      for(let i=0;i<headerNorm.length;i++) if(/prev|previs|entreg|delivery|date|data/.test(headerNorm[i])) { idx = i; break; }
-    }
-    if(idx !== -1 && input.length > 1) {
-      const raw = input[1][idx];
-      const substr = extractFirstDateLikeString(String(raw||''));
-      const parsed = parseAnyDateValue(substr || raw);
-      if(parsed) return formatToDDMMYYYY(parsed);
-    }
-    if(input.length > 1) {
-      for(const cell of input[1]) {
-        const substr = extractFirstDateLikeString(String(cell||''));
-        if(substr) {
-          const parsed = parseAnyDateValue(substr);
-          if(parsed) return formatToDDMMYYYY(parsed);
-        }
-      }
-    }
     return '';
   }
   const raw = input;
@@ -251,102 +219,75 @@ function extractDateDefinitive(input){
 
 function extractDateDefinitiveWithDebug(input){
   const result = extractDateDefinitive(input);
-  if(DEBUG_DATES) {
-    try { console.info('DATE_EXTRACT DEBUG', { input, result }); } catch(e){}
-  }
+  if(DEBUG_DATES) { try { console.info('DATE_EXTRACT DEBUG', { input, result }); } catch(e){} }
   return result;
 }
 
 // -------------------------
-// Geocoding (Fila Lenta de Socorro - PLANO B)
-// Só entra em ação se o Google Apps Script falhar e não mandar a coordenada.
+// Geocoding (fila+cache)
 // -------------------------
 function normalizeAddressKey(addr){
   if(!addr) return '';
   return String(addr).trim().replace(/\s+/g,' ').toLowerCase();
 }
-
 function geocodeAddress(address){
   return new Promise((resolve, reject) => {
     if(!address || String(address).trim() === '') return resolve(null);
     const key = normalizeAddressKey(address);
     if(geocodeCache.hasOwnProperty(key)) return resolve(geocodeCache[key]);
-    
-    // Coloca na fila de espera
     geocodeQueue.push({ address, resolve, reject });
     processGeocodeQueue();
   });
 }
-
 function processGeocodeQueue(){
   if(geocodeProcessing) return;
   geocodeProcessing = true;
-  
   const next = () => {
     const item = geocodeQueue.shift();
     if(!item){ geocodeProcessing = false; return; }
-
     const address = item.address;
     const key = normalizeAddressKey(address);
-    const q = encodeURIComponent(address + ', Brasil'); // Força a busca no Brasil
-    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=0`;
-
-    // Busca na internet direto pelo navegador
-    fetch(url, { headers: { 'Accept-Language': 'pt-BR' } })
+    const q = encodeURIComponent(address + ', Brasil');
+    const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1&addressdetails=1&accept-language=pt-BR`;
+    fetch(url, { method: 'GET' })
       .then(r => r.json())
       .then(js => {
         if(Array.isArray(js) && js.length > 0){
           const p = js[0];
-          const res = { lat: parseFloat(p.lat), lon: parseFloat(p.lon) };
-          geocodeCache[key] = res; // Salva na memória do navegador
+          const res = { lat: parseFloat(p.lat), lon: parseFloat(p.lon), display_name: p.display_name || address, raw: p };
+          geocodeCache[key] = res;
           item.resolve(res);
         } else {
           geocodeCache[key] = null;
           item.resolve(null);
         }
       }).catch(err => {
-        console.warn('Erro no Geocode de Socorro (Plano B)', err);
+        console.warn('geocode error', err);
         geocodeCache[key] = null;
         item.resolve(null);
-      }).finally(() => {
-        // FREIO DE SEGURANÇA: Espera 1.5 segundos antes de pesquisar o próximo buraco
-        setTimeout(next, 1500);
-      });
+      }).finally(() => setTimeout(next, GEOCODE_DELAY_MS));
   };
   next();
 }
-
 function tryGeocodeIfNeeded(item, onResolved){
   const coords = getCoords(item);
-  
-  // PLANO A: Se o Google Sheets já mandou a coordenada, usa na hora e não faz nada!
-  if(coords){ 
-    if(typeof onResolved === 'function') onResolved(coords); 
-    return; 
-  }
-  
-  // PLANO B: Se não tem coordenada, aciona o socorro para pesquisar o texto
-  const addr = (item.endereco_completo || item.endereco || '').trim();
-  if(!addr) { 
-    if(typeof onResolved === 'function') onResolved(null); 
-    return; 
-  }
-
+  if(coords){ if(typeof onResolved === 'function') onResolved(coords); return; }
+  const addr = (item.endereco_completo || item.endereco || item.address || item.full_address || '').trim();
+  if(!addr) { if(typeof onResolved === 'function') onResolved(null); return; }
   const cacheKey = normalizeAddressKey(addr);
   if(geocodeCache.hasOwnProperty(cacheKey)) {
     const c = geocodeCache[cacheKey];
-    if(typeof onResolved === 'function') onResolved(c ? {lat: c.lat, lon: c.lon} : null);
+    if(c) { if(typeof onResolved === 'function') onResolved({lat: c.lat, lon: c.lon}); else onResolved(null); }
+    else { if(typeof onResolved === 'function') onResolved(null); }
     return;
   }
-
-  // Manda para a Fila Lenta
   geocodeAddress(addr).then(res => {
-    if(typeof onResolved === 'function') onResolved(res ? { lat: res.lat, lon: res.lon } : null);
+    if(res) { if(typeof onResolved === 'function') onResolved({ lat: res.lat, lon: res.lon }); } else { if(typeof onResolved === 'function') onResolved(null); }
   });
 }
 
 // -------------------------
-// Ícone, jsonp, util, findArrayInObject
+// Ícone, jsonp, util
 // -------------------------
 function createPinSVG(color='#eab308', size=28){
   const inner = Math.max(8, Math.round(size * 0.35));
@@ -434,83 +375,75 @@ function normalizeKeyName(k){
 }
 function extractClientNameFromAny(obj) {
   if (!obj) return '';
-  const keys = [
-    'cliente_nome','cliente','destinatario','destinatário','nome','receiver','recipient',
-    'customer_name','customer','client','nome_cliente','destinatario_nome','nome_destinatario',
-    'consignee','to_name','ship_to_name','dest'
-  ];
+  const keys = ['cliente_nome','cliente','destinatario','destinatário','nome','receiver','recipient','customer_name','customer','client'];
   for (const k of keys) {
     if (k in obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') {
       return String(obj[k]).trim();
-    }
-  }
-  for (const k in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
-    const v = obj[k];
-    if (typeof v === 'string' && /[A-Za-zÀ-ú]+(\s+[A-Za-zÀ-ú]+){1,4}/.test(v) && v.length < 90) {
-      return v.trim();
     }
   }
   return '';
 }
 function extractEcomNumberFromAny(obj) {
   if (!obj) return '';
-  const keys = [
-    'numero_ecommerce','numero_ecom','ecom','ecom_id','order_reference','order_ref',
-    'reference','referencia','reference_number','merchant_order_id','marketplace_order_id',
-    'external_id','external_reference','codigo_externo','order_id','orderNumber','id'
-  ];
+  const keys = ['numero_ecommerce','numero_ecom','ecom','ecom_id','order_reference','order_ref','reference','referencia','orderNumber'];
   for (const k of keys) {
     if (k in obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') {
       return normalizeEcomNumber(obj[k]);
-    }
-  }
-  const fallbackCandidates = ['reference','referencia','order_id','codigo_externo','id'];
-  for (const f of fallbackCandidates) {
-    if (f in obj && obj[f]) {
-      const s = String(obj[f]).trim();
-      const digits = s.replace(/\D/g, '');
-      if (digits.length >= 5) return digits;
-      if (s.length >= 4) return s;
     }
   }
   return '';
 }
 function extractStoreNameFromAny(obj) {
   if (!obj) return '';
-  const keys = [
-    'conta','loja','store','store_name','nome_loja','account','seller','shop','marketplace','loja_nome','store_id','merchant','conta'
-  ];
+  const keys = ['conta','loja','store','store_name','nome_loja','account','seller','shop','marketplace','merchant'];
   for (const k of keys) {
     if (k in obj && obj[k] !== undefined && obj[k] !== null && String(obj[k]).trim() !== '') {
       return String(obj[k]).trim();
     }
   }
-  for (const k in obj) {
-    if (!Object.prototype.hasOwnProperty.call(obj, k)) continue;
-    const v = String(obj[k] || '');
-    const m = v.match(/(loja[:\s]+[A-Za-z0-9\-\s]+)/i);
-    if (m && m[1]) return m[1].replace(/loja[:\s]+/i, '').trim();
-  }
   return '';
+}
+
+function getEcomNum(item){
+  if(!item) return '';
+  const candidates = [item.numero_ecommerce, item.numero_ecom, item.ecom_num, item.id_ecom, item.referencia, item.reference, item.codigo_externo];
+  for(const c of candidates){
+    if(c !== undefined && c !== null && String(c).trim() !== '') {
+      const normalized = normalizeEcomNumber(c);
+      if(normalized) return normalized;
+    }
+  }
+  const fallback = item.numero || item.id || item.pedido || '';
+  return normalizeEcomNumber(fallback) || '';
+}
+
+function normalizeOrderObject(item) {
+  const obj = Object.assign({}, item);
+  obj.numero = obj.numero || obj.id || obj.pedido || obj.order_id || obj.orderNumber || obj.reference || obj.referencia || '';
+  obj.numero = String(obj.numero || '').trim();
+  obj.cliente_nome = String(obj.cliente_nome || obj.cliente || obj.destinatario || obj.nome || '').trim();
+  obj.endereco_completo = obj.endereco_completo || obj.endereco || obj.address || obj.full_address || obj.address_line || '';
+  obj.lat = obj.lat || obj.latitude || obj.latitude_local || obj.geo_lat || obj.lat_br || '';
+  obj.lon = obj.lon || obj.longitude || obj.longitude_local || obj.geo_lon || obj.lon_br || '';
+  obj.data_prevista = obj.data_prevista || obj.data_previsao || obj.previsao || obj.data_prev || obj.data_entrega || '';
+  obj.status_logistica = obj.status_logistica || obj.status || obj.situacao || '';
+  obj.id = obj.id || obj.numero || '';
+  obj.data_prevista = obj.data_prevista && String(obj.data_prevista).trim() ? extractDateDefinitiveWithDebug(obj.data_prevista) : extractDateDefinitiveWithDebug(obj);
+  return obj;
 }
 
 // -------------------------
 // Carregamento dos dados
 // -------------------------
 function load(){
-  // ERP (JSONP)
+  // ERP
   jsonpFetch(API, function(err, resp){
     if (resp && resp.success) {
       let dadosErp = (resp.data || []).filter(o => (o.numero || o.id || o.pedido));
       orders = dadosErp.map(normalizeOrderObject);
-      orders.forEach(o => {
-        o.data_prevista = o.data_prevista && String(o.data_prevista).trim() ? extractDateDefinitiveWithDebug(o.data_prevista) : extractDateDefinitiveWithDebug(o);
-      });
       scheduleRender();
     } else if (Array.isArray(resp)) {
       orders = (resp || []).map(normalizeOrderObject);
-      orders.forEach(o => { o.data_prevista = o.data_prevista && String(o.data_prevista).trim() ? extractDateDefinitiveWithDebug(o.data_prevista) : extractDateDefinitiveWithDebug(o); });
       scheduleRender();
     } else {
       orders = [];
@@ -521,9 +454,7 @@ function load(){
   // FLEX
   (function fetchFlexRobust(){
     const urlBase = `${API_FLEX}?action=separacoesIndex`;
-    const JSONP_TIMEOUT = 15000;
-
-    jsonpFetchPromise(urlBase, JSONP_TIMEOUT).then(result => {
+    jsonpFetchPromise(urlBase, 15000).then(result => {
       processFlexResponse(result.resp);
     }).catch(jsonpErr => {
       fetch(urlBase, { cache: 'no-store' }).then(r => r.text()).then(txt => {
@@ -539,11 +470,6 @@ function load(){
               return;
             } catch(e2){}
           }
-          try {
-            const maybe = JSON.parse(txt.replace(/\n/g,''));
-            processFlexResponse(maybe);
-            return;
-          } catch(e3){}
           flexOrders = [];
           scheduleRender();
         }
@@ -555,86 +481,32 @@ function load(){
 
     function processFlexResponse(resp){
       let dadosBrutos = findArrayInObject(resp) || (Array.isArray(resp) ? resp : null);
-      if(!dadosBrutos || dadosBrutos.length === 0) {
-        dadosBrutos = [];
-        const q = [resp];
-        while(q.length && dadosBrutos.length === 0) {
-          const n = q.shift();
-          for(const k in n){
-            if(!Object.prototype.hasOwnProperty.call(n,k)) continue;
-            const v = n[k];
-            if(Array.isArray(v)) { dadosBrutos = v; break; }
-            if(v && typeof v === 'object') q.push(v);
-          }
-        }
-      }
       if(!dadosBrutos) dadosBrutos = [];
 
       if (Array.isArray(dadosBrutos) && dadosBrutos.length > 0 && Array.isArray(dadosBrutos[0])) {
         const headerRow = dadosBrutos[0].map(h => String(h || '').trim());
-        const headerNorm = headerRow.map(h => normalizeKeyName(h || ''));
         const dataRows = dadosBrutos.slice(1);
-        const possibleDateKeys = ['dataprevista','data_prevista','data','previsao','dataentrega','deliverydate','expecteddate','eta','scheduled'];
-        let idxDate = -1;
-        for (let i = 0; i < headerNorm.length; i++) {
-          if (possibleDateKeys.includes(headerNorm[i])) { idxDate = i; break; }
-        }
-        if (idxDate === -1) {
-          for (let i = 0; i < headerNorm.length; i++){
-            if (/(prev|previs|entreg|delivery|expected|date|data)/i.test(headerNorm[i])) { idxDate = i; break; }
-          }
-        }
-        const possibleStoreKeys = ['conta','loja','store','store_name','nome_loja','account','merchant'];
-        let idxStore = -1;
-        for (let i = 0; i < headerNorm.length; i++) {
-          if (possibleStoreKeys.includes(headerNorm[i])) { idxStore = i; break; }
-        }
-        if (idxStore === -1) {
-          for (let i = 0; i < headerNorm.length; i++){
-            if (/(conta|loja|store|merchant|seller)/i.test(headerNorm[i])) { idxStore = i; break; }
-          }
-        }
-
         dadosBrutos = dataRows.map(row => {
           const obj = {};
           for (let i = 0; i < headerRow.length; i++) {
-            const key = headerRow[i] || `col${i}`;
-            obj[key] = row[i];
+            obj[headerRow[i] || `col${i}`] = row[i];
           }
-          if (idxDate !== -1) obj['data_prevista_raw'] = row[idxDate];
-          if (idxStore !== -1) obj['store_raw'] = row[idxStore];
           return obj;
         });
       }
 
       const normalized = dadosBrutos.map(raw => {
         const f = Object.assign({}, raw);
-        f.numero = String(f.numero || f.id || f.pedido || f.order_id || f.orderNumber || f.reference || f.referencia || '').trim();
+        f.numero = String(f.numero || f.id || f.pedido || f.order_id || '').trim();
         f.cliente_nome = extractClientNameFromAny(f) || f.destinatario || f.cliente || f.nome || '';
-
-        let candidate = null;
-        if (f.data_prevista_raw !== undefined && f.data_prevista_raw !== null && String(f.data_prevista_raw).trim() !== '') candidate = f.data_prevista_raw;
-        else {
-          for(const key in f){
-            if(!Object.prototype.hasOwnProperty.call(f,key)) continue;
-            const nkey = normalizeKeyName(key);
-            if(/prev|previs|data|entreg|sched|eta|delivery|expected/i.test(nkey) && String(f[key]).trim() !== '') {
-              candidate = f[key];
-              break;
-            }
-          }
-        }
-        f.data_prevista = candidate ? extractDateDefinitiveWithDebug(candidate) : extractDateDefinitiveWithDebug(f);
-
+        f.data_prevista = extractDateDefinitiveWithDebug(f);
         f.numero_ecommerce = extractEcomNumberFromAny(f) || normalizeEcomNumber(f.numero_ecommerce || f.referencia || f.reference || f.id || '');
-        const rawStoreCandidate = (f.store_raw !== undefined && f.store_raw !== null && String(f.store_raw).trim() !== '') ? String(f.store_raw).trim()
-          : ( (f.conta !== undefined && f.conta !== null && String(f.conta).trim() !== '') ? String(f.conta).trim() : null );
-        f.store_name = rawStoreCandidate || extractStoreNameFromAny(f) || (f.loja || f.store || f.merchant || f.conta || '');
-        f.endereco_completo = f.endereco_completo || f.endereco || f.address || f.full_address || '';
-        f.lat = f.lat || f.latitude || f.latitude_local || f.geo_lat || f.lat_br || '';
-        f.lon = f.lon || f.longitude || f.longitude_local || f.geo_lon || f.lon_br || '';
+        f.store_name = extractStoreNameFromAny(f) || f.loja || f.store || '';
+        f.endereco_completo = f.endereco_completo || f.endereco || f.address || '';
+        f.lat = f.lat || f.latitude || '';
+        f.lon = f.lon || f.longitude || '';
         f.situacao_nome = f.situacao_nome || f.status || f.situacao || '';
-        f.id = f.id || f.numero || f.pedido || (f.order_id || '');
+        f.id = f.id || f.numero || f.pedido || '';
         return f;
       });
 
@@ -644,23 +516,8 @@ function load(){
   })();
 }
 
-function normalizeOrderObject(item) {
-  const obj = Object.assign({}, item);
-  obj.numero = obj.numero || obj.id || obj.pedido || obj.order_id || obj.orderNumber || obj.reference || obj.referencia || '';
-  obj.numero = String(obj.numero || '').trim();
-  obj.cliente_nome = String(obj.cliente_nome || obj.cliente || obj.destinatario || obj.nome || obj.receiver || obj.recipient || '').trim();
-  obj.endereco_completo = obj.endereco_completo || obj.endereco || obj.address || obj.full_address || obj.address_line || '';
-  obj.lat = obj.lat || obj.latitude || obj.latitude_local || obj.geo_lat || obj.lat_br || '';
-  obj.lon = obj.lon || obj.longitude || obj.longitude_local || obj.geo_lon || obj.lon_br || '';
-  obj.data_prevista = obj.data_prevista || obj.data_previsao || obj.previsao || obj.data_prev || obj.data_entrega || '';
-  obj.status_logistica = obj.status_logistica || obj.status || obj.situacao || '';
-  obj.id = obj.id || obj.numero || '';
-  obj.data_prevista = obj.data_prevista && String(obj.data_prevista).trim() ? extractDateDefinitiveWithDebug(obj.data_prevista) : extractDateDefinitiveWithDebug(obj);
-  return obj;
-}
-
 // -------------------------
-// Plotagem de marcadores (COM CORREÇÃO DE DUPLICAÇÃO ASYNC)
+// Plotagem de marcadores
 // -------------------------
 window.activeMainMarkers = {};
 window.activeFlexMarkers = {};
@@ -671,8 +528,6 @@ let mainBoundsTimer = null;
 function plotMapMarkers(orderList, flexList){
   if(!markerCluster || !markerClusterFlex) return;
 
-  // INCREMENTA O TOKEN A CADA RENDER. Isso impede que uma busca demorada 
-  // no Nominatim coloque um pino na tela antiga e duplique as contagens.
   currentMapRenderToken++;
   const myToken = currentMapRenderToken;
 
@@ -682,7 +537,6 @@ function plotMapMarkers(orderList, flexList){
   window.activeMainMarkers = {};
   window.activeFlexMarkers = {};
 
-  // Auto-foco com debounce suave
   function debouncedFitBoundsMain() {
     clearTimeout(mainBoundsTimer);
     mainBoundsTimer = setTimeout(() => {
@@ -710,17 +564,13 @@ function plotMapMarkers(orderList, flexList){
   }
 
   function addMainMarker(item, lat, lon){
-    if (myToken !== currentMapRenderToken) return; // Async bleeding cancelado!
-    
+    if (myToken !== currentMapRenderToken) return; 
     const ecomNum = (item.numero_ecommerce || getEcomNum(item) || '').toString();
     const normNum = normalizeOrderNumber(item.numero || item.id || item.pedido || '');
-    
-    // Evita duplicados na mesma renderização
     if (window.activeMainMarkers[normNum]) return; 
 
-    const popupHtml = `<div class='p-1 font-sans'><b class='text-blue-600 text-sm'>Pedido #${escapeHtml(String(item.numero || ''))}</b><br><small class='text-xs text-slate-600 font-medium'>${escapeHtml(String(item.endereco_completo || ''))}</small><br><div class='text-[13px] text-slate-800 font-semibold mt-1'>${escapeHtml(String(item.cliente_nome || ''))}</div><div class='text-xs text-slate-500 mt-1'>Data Prevista: <b>${escapeHtml(String(item.data_prevista || '—'))}</b></div><div class='text-xs text-slate-400 mt-1'>ecom: ${escapeHtml(ecomNum || '—')}</div></div>`;
-    const svgHtml = createPinSVG('#004f9f', 30);
-    const icon = L.divIcon({ html: svgHtml, className: '', iconSize: [30,30], iconAnchor: [15,30] });
+    const popupHtml = `<div class='p-1 font-sans'><b class='text-blue-600 text-sm'>Pedido #${escapeHtml(String(item.numero || ''))}</b><br><small class='text-xs text-slate-600 font-medium'>${escapeHtml(String(item.endereco_completo || ''))}</small><br><div class='text-[13px] text-slate-800 font-semibold mt-1'>${escapeHtml(String(item.cliente_nome || ''))}</div></div>`;
+    const icon = L.divIcon({ html: createPinSVG('#004f9f', 30), className: '', iconSize: [30,30], iconAnchor: [15,30] });
     const m = L.marker([lat, lon], { icon }).bindPopup(popupHtml);
     
     markerCluster.addLayer(m);
@@ -729,68 +579,170 @@ function plotMapMarkers(orderList, flexList){
   }
 
   function addFlexMarker(item, lat, lon){
-    if (myToken !== currentMapRenderToken) return; // Async bleeding cancelado!
-
+    if (myToken !== currentMapRenderToken) return; 
     const ecomNum = (item.numero_ecommerce || '').toString();
     const normNum = normalizeOrderNumber(item.numero || item.id || '');
-
-    // Evita duplicados na mesma renderização
     if (window.activeFlexMarkers[normNum]) return; 
 
-    const popupHtml = `<div class='p-1 font-sans'><b class='text-amber-500 text-sm'>Flex #${escapeHtml(String(item.numero || item.id || ''))}</b><br><small class='text-xs text-slate-600 font-medium'>${escapeHtml(String(item.endereco_completo || ''))}</small><br><div class='text-[13px] text-slate-800 font-semibold mt-1'>${escapeHtml(String(item.cliente_nome || ''))}</div><div class='text-xs text-slate-500 mt-1'>Data Prevista: <b>${escapeHtml(String(item.data_prevista || '—'))}</b></div><div class='text-xs text-slate-400 mt-1'>ecom: ${escapeHtml(ecomNum || '—')}</div><div class='text-xs text-slate-400 mt-1'>Loja: ${escapeHtml(item.store_name || '—')}</div></div>`;
-    const svgHtmlFlex = createPinSVG('#eab308', 30);
-    const iconFlex = L.divIcon({ html: svgHtmlFlex, className: '', iconSize: [30,30], iconAnchor: [15,30] });
-    const mFlex = L.marker([lat, lon], { icon: iconFlex }).bindPopup(popupHtml);
+    const popupHtml = `<div class='p-1 font-sans'><b class='text-amber-500 text-sm'>Flex #${escapeHtml(String(item.numero || item.id || ''))}</b><br><small class='text-xs text-slate-600 font-medium'>${escapeHtml(String(item.endereco_completo || ''))}</small><br><div class='text-[13px] text-slate-800 font-semibold mt-1'>${escapeHtml(String(item.cliente_nome || ''))}</div></div>`;
+    const iconFlex = L.divIcon({ html: createPinSVG('#eab308', 30), className: '', iconSize: [30,30], iconAnchor: [15,30] });
     
+    const mFlex = L.marker([lat, lon], { icon: iconFlex }).bindPopup(popupHtml);
     markerClusterFlex.addLayer(mFlex);
+
+    const mFlexForMain = L.marker([lat, lon], { icon: iconFlex }).bindPopup(popupHtml);
+    markerCluster.addLayer(mFlexForMain);
+    
     try { if(normNum) window.activeFlexMarkers[normNum] = mFlex; if(ecomNum) window.activeFlexMarkers[ecomNum] = mFlex; window.activeFlexMarkers[String(item.numero || item.id || '')] = mFlex; } catch(e){}
     debouncedFitBoundsFlex();
+    debouncedFitBoundsMain(); 
   }
 
   for(const item of (orderList||[])){
     const coords = getCoords(item);
-    if(coords){
-      addMainMarker(item, coords.lat, coords.lon);
-    } else {
-      tryGeocodeIfNeeded(item, (c) => {
-        if(c) addMainMarker(item, c.lat, c.lon);
-      });
-    }
+    if(coords) addMainMarker(item, coords.lat, coords.lon);
+    else tryGeocodeIfNeeded(item, (c) => { if(c) addMainMarker(item, c.lat, c.lon); });
   }
 
   for(const item of (flexList||[])){
     const coords = getCoords(item);
-    if(coords){
-      addFlexMarker(item, coords.lat, coords.lon);
-    } else {
-      tryGeocodeIfNeeded(item, (c) => {
-        if(c) addFlexMarker(item, c.lat, c.lon);
-      });
-    }
+    if(coords) addFlexMarker(item, coords.lat, coords.lon);
+    else tryGeocodeIfNeeded(item, (c) => { if(c) addFlexMarker(item, c.lat, c.lon); });
   }
-}
-
-function getEcomNum(item){
-  if(!item) return '';
-  const candidates = [
-    item.numero_ecommerce, item.numero_ecom, item.ecom_num, item.id_ecom,
-    item.referencia, item.reference, item.ref, item.ecom, item.ecommerce_id,
-    item.order_reference, item.order_ref, item.orderNumber, item.order_id, item.order,
-    item.codigo_externo, item.codigo
-  ];
-  for(const c of candidates){
-    if(c !== undefined && c !== null && String(c).trim() !== '') {
-      const normalized = normalizeEcomNumber(c);
-      if(normalized) return normalized;
-    }
-  }
-  const fallback = item.numero || item.id || item.pedido || '';
-  const maybe = normalizeEcomNumber(fallback);
-  return maybe || '';
 }
 
 // -------------------------
-// Render da UI (tabelas)
+// Roteirizador (NOVA ABA)
+// -------------------------
+function renderRotas() {
+  routeEligible = [];
+  const pushEligible = (o, type) => {
+     const st = String(o.status_logistica || o.situacao_nome || o.status || '').toLowerCase();
+     if(st !== 'entregue' && String(o.numero || '').trim() !== '') {
+         o._routeType = type;
+         routeEligible.push(o);
+     }
+  };
+  
+  orders.forEach(o => pushEligible(o, 'ERP'));
+  flexOrders.forEach(o => pushEligible(o, 'FLEX'));
+
+  const tbodyRotas = document.getElementById('table-rotas');
+  if(tbodyRotas) {
+     if(routeEligible.length === 0) {
+        tbodyRotas.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 font-semibold">Nenhum pedido disponível.</td></tr>`;
+     } else {
+        tbodyRotas.innerHTML = routeEligible.map((o) => {
+           const id = escapeHtml(String(o.id || o.numero));
+           const ecom = escapeHtml(normalizeEcomNumber(getEcomNum(o)));
+           const checked = routeSelection.has(id) ? 'checked' : '';
+           const typeBadge = o._routeType === 'FLEX' 
+              ? '<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-bold">FLEX</span>' 
+              : '<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">ERP</span>';
+           
+           return `
+             <tr class="hover:bg-slate-50 cursor-pointer ${checked ? 'bg-purple-50' : ''} transition-colors" onclick="toggleRouteOrder('${id}')">
+                <td class="p-2.5 text-center" onclick="event.stopPropagation()">
+                   <input type="checkbox" class="w-4 h-4 accent-purple-600 rounded cursor-pointer" ${checked} onchange="toggleRouteOrder('${id}')">
+                </td>
+                <td class="p-2.5">
+                   <div class="font-bold text-slate-800 text-xs">#${escapeHtml(o.numero)}</div>
+                   <div class="text-[10px] text-slate-400 mt-0.5">${ecom || '—'}</div>
+                </td>
+                <td class="p-2.5">
+                   <div class="font-bold text-slate-700 text-[11px]">${escapeHtml(o.cliente_nome)}</div>
+                   <div class="text-[10px] text-slate-500 truncate max-w-[220px] mt-0.5" title="${escapeHtml(o.endereco_completo)}">${escapeHtml(o.endereco_completo)}</div>
+                </td>
+                <td class="p-2.5 text-right">
+                   ${typeBadge}
+                   <div class="mt-1 text-[9px] font-bold text-slate-400 uppercase">${escapeHtml(o.status_logistica || o.situacao_nome || o.situacao || 'A Separar')}</div>
+                </td>
+             </tr>
+           `;
+        }).join('');
+     }
+  }
+  
+  const countEl = document.getElementById('rota-count');
+  if(countEl) countEl.innerText = routeSelection.size;
+  
+  plotRotasMap();
+}
+
+function plotRotasMap() {
+  if(!markerClusterRotas) return;
+  markerClusterRotas.clearLayers();
+  
+  routeEligible.forEach(item => {
+      const coords = getCoords(item);
+      if(coords) {
+          const id = String(item.id || item.numero);
+          const isSelected = routeSelection.has(id);
+          const color = isSelected ? '#9333ea' : '#94a3b8';
+          
+          const svgHtml = createPinSVG(color, isSelected ? 34 : 26);
+          const icon = L.divIcon({ html: svgHtml, className: '', iconSize: [isSelected?34:26, isSelected?34:26], iconAnchor: [isSelected?17:13, isSelected?34:26] });
+          const m = L.marker([coords.lat, coords.lon], { icon }).bindPopup(`<div class='p-1 font-sans text-center'><b class='text-[13px] ${isSelected ? 'text-purple-600' : 'text-slate-600'}'>#${escapeHtml(item.numero)}</b><br><span class='text-xs text-slate-700 font-semibold'>${escapeHtml(item.cliente_nome)}</span></div>`);
+          
+          m.on('click', () => { toggleRouteOrder(id); });
+          markerClusterRotas.addLayer(m);
+      }
+  });
+  
+  if(routeSelection.size > 0 && markerClusterRotas.getLayers().length > 0) {
+      const bounds = L.featureGroup(markerClusterRotas.getLayers()).getBounds();
+      if(bounds.isValid()) mapRotas.fitBounds(bounds.pad(0.1), { maxZoom: 15 });
+  }
+}
+
+// Funções de Rota Exportadas
+window.toggleRouteOrder = function(id) {
+  if(routeSelection.has(id)) routeSelection.delete(id);
+  else routeSelection.add(id);
+  renderRotas();
+};
+window.selectAllRoute = function() {
+  routeEligible.forEach(o => routeSelection.add(String(o.id || o.numero)));
+  renderRotas();
+};
+window.clearRouteSelection = function() {
+  routeSelection.clear();
+  renderRotas();
+};
+window.gerarRotaWhatsApp = function() {
+  if(routeSelection.size === 0) return showToast('Selecione ao menos um pedido para a rota.');
+  const selecionados = routeEligible.filter(o => routeSelection.has(String(o.id || o.numero)));
+  let text = `🚚 *ROTA DE ENTREGA - VESCO*\n\n`;
+  selecionados.forEach((s, i) => {
+    const end = escapeHtml(s.endereco_completo || 'Endereço não informado');
+    const obs = escapeHtml(s.instrucao_entrega || s.forma_pagamento || '');
+    const tipo = s._routeType === 'FLEX' ? '[FLEX] ' : '';
+    text += `*${i+1}. Pedido #${s.numero}* ${tipo}\n👤 ${s.cliente_nome}\n📍 ${end}\n💰 ${obs}\n\n`;
+  });
+  text += `*Total de Pacotes: ${selecionados.length}*`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+};
+window.gerarRotaMaps = function() {
+  if(routeSelection.size === 0) return showToast('Selecione ao menos um pedido para a rota.');
+  const selecionados = routeEligible.filter(o => routeSelection.has(String(o.id || o.numero)));
+  const comCoords = selecionados.map(o => getCoords(o)).filter(c => c !== null);
+  
+  if(comCoords.length === 0) return showToast('Nenhum pedido possui coordenadas válidas para o GPS.');
+  if(comCoords.length > 10) return alert('O Google Maps aceita no máximo 10 paradas por link.');
+
+  const dest = comCoords[comCoords.length - 1];
+  let url = `http://googleusercontent.com/maps.google.com/maps?saddr=${comCoords[0].lat},${comCoords[0].lon}&daddr=${dest.lat},${dest.lon}`;
+  
+  if(comCoords.length > 2) {
+      const waypoints = comCoords.slice(1, comCoords.length - 1).map(c => `${c.lat},${c.lon}`).join('+to:');
+      url += `+to:${waypoints}`;
+  }
+  
+  window.open(url, '_blank');
+};
+
+// -------------------------
+// Render da UI Geral (Tabelas)
 // -------------------------
 function render(){
   const searchEl = document.getElementById('search');
@@ -802,7 +754,7 @@ function render(){
   const tbodyFlexCorpo = document.getElementById('table-envios-flex-corpo');
   const tbodyEntregues = document.getElementById('table-entregues');
 
-  // 1. FILA ATIVA (ERP)
+  // FILA ATIVA (ERP)
   const filaOrders = orders.filter(o => {
     const st = String(o.status_logistica || '').toLowerCase().trim();
     return (st === 'a separar' || st === 'em separação') && (String(o.numero || '').toLowerCase().includes(searchQ) || String(o.cliente_nome || '').toLowerCase().includes(searchQ));
@@ -926,13 +878,13 @@ function render(){
         <td class="p-3 bg-slate-50/40 hidden md:table-cell text-xs font-semibold text-slate-500">${escapeHtml(o.instrucao_entrega || '—')}</td>
         <td class="p-3 pr-4 text-right space-x-1 whitespace-nowrap">
           <button class="bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-600 px-2 py-1 rounded-lg font-bold text-[11px] transition-all" onclick="event.stopPropagation(); updateStatusJsonp('${escapeHtml(o.id)}','A Separar')">Estornar</button>
-          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-all" onclick="event.stopPropagation(); prepararDespachoMotorista('${escapeHtml(o.numero)}')">Despachar</button>
+          <button class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg font-bold text-[11px] shadow-sm transition-all" onclick="event.stopPropagation(); updateStatusJsonp('${escapeHtml(o.id)}','Entregue')">Despachar</button>
         </td>
       </tr>`; 
     }).join('');
   }
 
-  // FLEX (AGORA COM BOTÃO DE FOCO)
+  // FLEX
   if (tbodyFlexCorpo) {
     const flexFiltrados = (flexOrders || []).filter(f => {
       const q = (searchQ || '').toLowerCase();
@@ -1008,7 +960,12 @@ function render(){
   const sumFlexEl = document.getElementById('sum-flex-total');
   if(sumSepararEl) sumSepararEl.innerText = orders.filter(o => !o.status_logistica || String(o.status_logistica).toLowerCase().includes('a separar')).length;
   if(sumProcessoEl) sumProcessoEl.innerText = orders.filter(o => String(o.status_logistica).toLowerCase().includes('em separa')).length;
-  if(sumTotalEl) sumTotalEl.innerText = orders.length;
+  
+  if(sumTotalEl) {
+    const flexFiltradosParaMapa = (flexOrders || []).filter(f => String(f.numero || '').trim() !== '');
+    sumTotalEl.innerText = orders.length + flexFiltradosParaMapa.length;
+  }
+  
   if(sumFlexEl) {
      const flexFiltrados = (flexOrders || []).filter(f => String(f.numero || '').trim() !== '');
      sumFlexEl.innerText = flexFiltrados.length;
@@ -1030,11 +987,12 @@ function render(){
     });
     const flexFiltradosParaMapa = (flexOrders || []).filter(f => String(f.numero || '').trim() !== '');
     plotMapMarkers(logOrdersForMap, flexFiltradosParaMapa);
+    
+    // Atualiza aba de Rotas
+    renderRotas();
   } catch (e) {
-    console.warn('plotMapMarkers erro', e);
+    console.warn('Erros visuais no render principal:', e);
   }
-  // Dispara a atualização do painel do motorista
-  if (typeof renderMotorista === 'function') renderMotorista();
 }
 
 // --- Inits, mapas e handlers menores ---
@@ -1042,32 +1000,46 @@ function initMap() {
   try {
     const mapEl = document.getElementById('map');
     const mapFlexEl = document.getElementById('map-flex');
-    if (!mapEl || !mapFlexEl) {
+    const mapRotasEl = document.getElementById('map-rotas');
+
+    if (!mapEl || !mapFlexEl || !mapRotasEl) {
       return;
     }
     if (window._vesco_map_inited) return;
     window._vesco_map_inited = true;
 
+    // Mapa 1: Logística
     map = L.map('map').setView([-23.55052, -46.633308], 11);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '&copy; CartoDB', maxZoom: 19 }).addTo(map);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '© CartoDB', maxZoom: 19 }).addTo(map);
     if (typeof L.markerClusterGroup === 'function') {
       markerCluster = L.markerClusterGroup({ iconCreateFunction: function(cluster) { return new L.DivIcon({ html: '<div><span>' + cluster.getChildCount() + '</span></div>', className: 'marker-cluster marker-cluster-main', iconSize: new L.Point(40, 40) }); } });
     } else { markerCluster = L.layerGroup(); }
     map.addLayer(markerCluster);
 
+    // Mapa 2: Flex
     mapFlex = L.map('map-flex').setView([-23.55052, -46.633308], 11);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '&copy; CartoDB', maxZoom: 19 }).addTo(mapFlex);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '© CartoDB', maxZoom: 19 }).addTo(mapFlex);
     if (typeof L.markerClusterGroup === 'function') {
       markerClusterFlex = L.markerClusterGroup({ chunkedLoading: true, iconCreateFunction: function(cluster) { return new L.DivIcon({ html: '<div><span>' + cluster.getChildCount() + '</span></div>', className: 'marker-cluster marker-cluster-flex', iconSize: new L.Point(40, 40) }); } });
     } else { markerClusterFlex = L.layerGroup(); }
     mapFlex.addLayer(markerClusterFlex);
 
+    // Mapa 3: Roteirizador
+    mapRotas = L.map('map-rotas').setView([-23.55052, -46.633308], 11);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', { attribution: '© CartoDB', maxZoom: 19 }).addTo(mapRotas);
+    if (typeof L.markerClusterGroup === 'function') {
+      markerClusterRotas = L.markerClusterGroup({ chunkedLoading: true, iconCreateFunction: function(cluster) { return new L.DivIcon({ html: '<div><span>' + cluster.getChildCount() + '</span></div>', className: 'marker-cluster marker-cluster-main', iconSize: new L.Point(40, 40) }); } });
+    } else { markerClusterRotas = L.layerGroup(); }
+    mapRotas.addLayer(markerClusterRotas);
+
     window.map = map;
     window.mapFlex = mapFlex;
+    window.mapRotas = mapRotas;
     window.markerCluster = markerCluster;
     window.markerClusterFlex = markerClusterFlex;
+    window.markerClusterRotas = markerClusterRotas;
 
-    setTimeout(()=>{ try { if (map) map.invalidateSize(); if (mapFlex) mapFlex.invalidateSize(); } catch(e){} }, 300);
+    setTimeout(()=>{ try { if (map) map.invalidateSize(); if (mapFlex) mapFlex.invalidateSize(); if (mapRotas) mapRotas.invalidateSize(); } catch(e){} }, 300);
   } catch(e){ console.warn('initMap erro', e); }
 }
 
@@ -1095,7 +1067,7 @@ function focusOrderOnMap(numeroOrEcom) {
   const marker = findMainMarkerByKey(numeroOrEcom);
   if (marker) {
     switchTab('logistica');
-    setTimeout(() => { // Aguarda a aba ser trocada antes de centralizar
+    setTimeout(() => { 
         const latLng = marker.getLatLng();
         map.setView(latLng, 16);
         marker.openPopup();
@@ -1109,7 +1081,7 @@ function focusFlexOnMap(numeroOrEcom) {
   const marker = findFlexMarkerByKey(numeroOrEcom);
   if (marker) {
     switchTab('envios_flex');
-    setTimeout(() => { // Aguarda a aba ser trocada antes de centralizar
+    setTimeout(() => { 
         const latLng = marker.getLatLng();
         mapFlex.setView(latLng, 16);
         marker.openPopup();
@@ -1124,7 +1096,10 @@ function focusFlexOnMap(numeroOrEcom) {
 function showLoading(on){ const el = document.getElementById('loadingOverlay'); if(el) el.style.display = on ? 'flex' : 'none'; }
 function showToast(msg, ms=2500){ const t=document.getElementById('toast'); if(!t) return; t.innerText=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', ms); }
 
-
+function moverParaPendenciaPrompt(id){
+  const motivo = prompt('Motivo da pendência:');
+  if(motivo !== null) updateStatusJsonp(id, 'Pendente', motivo || '');
+}
 
 // --- JSONP updates ---
 function updateStatusJsonp(id, status, observacao = ''){
@@ -1170,22 +1145,21 @@ function markFlexDelivered(id, numero){
   });
 }
 
+// --- Switch tabs / subtabs / operator modal ---
 function switchTab(which){
-  document.getElementById('view-separacao')?.classList.toggle('hidden', which !== 'separacao');
-  document.getElementById('view-separados_hoje')?.classList.toggle('hidden', which !== 'separados_hoje');
-  document.getElementById('view-logistica')?.classList.toggle('hidden', which !== 'logistica');
-  document.getElementById('view-envios_flex')?.classList.toggle('hidden', which !== 'envios_flex');
+  document.getElementById('view-separacao').classList.toggle('hidden', which !== 'separacao');
+  document.getElementById('view-separados_hoje').classList.toggle('hidden', which !== 'separados_hoje');
+  document.getElementById('view-logistica').classList.toggle('hidden', which !== 'logistica');
+  document.getElementById('view-envios_flex').classList.toggle('hidden', which !== 'envios_flex');
   document.getElementById('view-rotas')?.classList.toggle('hidden', which !== 'rotas');
-  document.getElementById('view-entregues')?.classList.toggle('hidden', which !== 'entregues');
-  document.getElementById('view-motorista')?.classList.toggle('hidden', which !== 'motorista');
-  
-  if(document.getElementById('main-sep')) document.getElementById('main-sep').className = which === 'separacao' ? 'tab-btn active' : 'tab-btn';
-  if(document.getElementById('main-sephoje')) document.getElementById('main-sephoje').className = which === 'separados_hoje' ? 'tab-btn active' : 'tab-btn';
-  if(document.getElementById('main-log')) document.getElementById('main-log').className = which === 'logistica' ? 'tab-btn active' : 'tab-btn';
-  if(document.getElementById('main-flex')) document.getElementById('main-flex').className = which === 'envios_flex' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('view-entregues').classList.toggle('hidden', which !== 'entregues');
+
+  document.getElementById('main-sep').className = which === 'separacao' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('main-sephoje').className = which === 'separados_hoje' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('main-log').className = which === 'logistica' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('main-flex').className = which === 'envios_flex' ? 'tab-btn active' : 'tab-btn';
   if(document.getElementById('main-rotas')) document.getElementById('main-rotas').className = which === 'rotas' ? 'tab-btn active' : 'tab-btn';
-  if(document.getElementById('main-ent')) document.getElementById('main-ent').className = which === 'entregues' ? 'tab-btn active' : 'tab-btn';
-  if(document.getElementById('main-mot')) document.getElementById('main-mot').className = which === 'motorista' ? 'tab-btn active' : 'tab-btn';
+  document.getElementById('main-ent').className = which === 'entregues' ? 'tab-btn active' : 'tab-btn';
   
   if(which === 'logistica') {
     setTimeout(() => {
@@ -1212,15 +1186,17 @@ function switchTab(which){
   }
   if(which === 'rotas') {
     setTimeout(() => {
-       try { if (typeof plotRotasMap === 'function') plotRotasMap(); } catch(e){}
-       try { if (typeof renderRotas === 'function') renderRotas(); } catch(e){}
+      try { 
+        if (mapRotas) mapRotas.invalidateSize(); 
+        if(markerClusterRotas && markerClusterRotas.getLayers && markerClusterRotas.getLayers().length > 0){
+          const b = markerClusterRotas.getBounds();
+          if(b && b.isValid && b.isValid()) {
+            if(b.getSouthWest().equals(b.getNorthEast())) mapRotas.setView(b.getSouthWest(), 14);
+            else mapRotas.fitBounds(b.pad(0.12), { maxZoom: 15, animate: false });
+          }
+        }
+      } catch(e){}
     }, 300);
-  }
-  if(which === 'motorista') {
-    // Dá 200ms para a tela renderizar antes de calcular o tamanho do quadro de assinatura
-    setTimeout(() => {
-      if(typeof resizeCanvas === 'function') resizeCanvas();
-    }, 200);
   }
 }
 
@@ -1234,18 +1210,32 @@ function switchSubTab(name){
 function checkOperator() { if (!currentOperator) { const modal = document.getElementById('operatorModal'); if(modal) modal.classList.remove('hidden'); } else { const el = document.getElementById('activeOperatorDisplay'); if(el) el.innerText = `Op: ${currentOperator}`; } }
 function saveOperator() { const name = (document.getElementById('operatorNameInput')?.value || '').trim(); if(name) { localStorage.setItem('vesco_operator', name); currentOperator = name; const modal = document.getElementById('operatorModal'); if(modal) modal.classList.add('hidden'); const el = document.getElementById('activeOperatorDisplay'); if(el) el.innerText = `Op: ${currentOperator}`; } }
 
-// --- Eventos da tabela foram removidos, usamos os botões Crosshair e Onclick da Row ---
-document.addEventListener('DOMContentLoaded', function(){
-  (function ensureFlexScrollableInit(){
-    const flexCard = document.querySelector('#view-envios_flex .card');
-    if(flexCard){
-      const offset = 240;
-      flexCard.style.maxHeight = (window.innerHeight - offset) + 'px';
-      flexCard.style.overflowY = 'auto';
-      flexCard.style.overflowX = 'auto';
-    }
-  })();
-});
+// --- Map Toolbar Controls ---
+window.toggleMapExpand = function(mapId) {
+  const el = document.getElementById(mapId);
+  if(!el) return;
+  const wrapper = el.closest('.map-wrapper');
+  if(wrapper) wrapper.classList.toggle('expanded-map');
+  setTimeout(() => {
+    if(mapId === 'map' && map) map.invalidateSize();
+    if(mapId === 'map-flex' && mapFlex) mapFlex.invalidateSize();
+    if(mapId === 'map-rotas' && mapRotas) mapRotas.invalidateSize();
+  }, 300);
+};
+
+window.changeMapHeight = function(mapId, delta) {
+  const el = document.getElementById(mapId);
+  if(!el) return;
+  const currentHeight = el.clientHeight || 420;
+  let newHeight = currentHeight + delta;
+  if (newHeight < 200) newHeight = 200;
+  el.style.setProperty('height', newHeight + 'px', 'important');
+  setTimeout(() => {
+    if(mapId === 'map' && map) map.invalidateSize();
+    if(mapId === 'map-flex' && mapFlex) mapFlex.invalidateSize();
+    if(mapId === 'map-rotas' && mapRotas) mapRotas.invalidateSize();
+  }, 300);
+};
 
 // --- Inicialização principal (bootstrap) ---
 document.addEventListener('DOMContentLoaded', function() {
@@ -1278,399 +1268,3 @@ function setTodayDate() {
     topCalendar.value = new Date(dBr.getTime() - (offset*60*1000)).toISOString().split('T')[0];
   }
 }
-// =================================================================
-// 1. SISTEMA DE NOTIFICAÇÕES E RASTREIO DE OPERADOR
-// =================================================================
-
-// Função melhorada de Toast para mostrar Nome do Operador e Hora
-function showToast(msg, type = 'info', ms = 4000) {
-  const t = document.getElementById('toast');
-  if(!t) return;
-  
-  // Cores dinâmicas
-  let bg = 'bg-slate-800';
-  if(type === 'success') bg = 'bg-emerald-600';
-  if(type === 'warning') bg = 'bg-amber-500';
-  if(type === 'error') bg = 'bg-red-600';
-
-  t.className = `toast fixed top-4 right-4 ${bg} text-white px-5 py-3 rounded-xl shadow-2xl font-bold text-sm flex items-center gap-3 z-[9999] transition-all transform translate-y-0 opacity-100`;
-  t.innerHTML = `<i class="fas fa-bell"></i> <div>${msg}</div>`;
-  t.style.display = 'flex';
-  
-  setTimeout(() => {
-    t.classList.add('opacity-0', '-translate-y-5');
-    setTimeout(() => t.style.display = 'none', 300);
-  }, ms);
-}
-
-// Atualizamos a função de enviar o status para gerar a notificação na tela
-function updateStatusJsonp(id, status, observacao = ''){
-  showLoading(true);
-  const horaLocal = new Date().toLocaleTimeString('pt-BR', {timeZone: 'America/Sao_Paulo'}).slice(0,5);
-  
-  const url = `${API}?action=updateStatus&id=${id}&status=${encodeURIComponent(status)}&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(observacao)}`;
-  
-  jsonpFetch(url, function(){ 
-    showLoading(false); 
-    // Dispara a notificação de auditoria
-    showToast(`<span class="text-blue-200">${currentOperator}</span> alterou o pedido #${id}<br><span class="text-xs font-normal">Para: <b>${status}</b> às ${horaLocal}</span>`, 'info', 5000);
-    load(); 
-  });
-}
-
-// =================================================================
-// 2. RELATÓRIO DE PENDÊNCIAS
-// =================================================================
-
-window.moverParaPendenciaPrompt = (id) => {
-  document.getElementById('pendenciaId').value = id;
-  document.getElementById('pendenciaPedidoDisplay').innerText = `Pedido #${id}`;
-  document.getElementById('pendenciaDetalhes').value = '';
-  document.getElementById('pendenciaModal').classList.remove('hidden');
-};
-
-window.fecharPendenciaModal = () => {
-  document.getElementById('pendenciaModal').classList.add('hidden');
-};
-
-window.salvarPendenciaModal = () => {
-  const id = document.getElementById('pendenciaId').value;
-  const motivo = document.getElementById('pendenciaMotivo').value;
-  const detalhes = document.getElementById('pendenciaDetalhes').value;
-  
-  if(detalhes.trim() === '') return alert("Por favor, especifique os detalhes/produtos faltantes.");
-  
-  const observacaoFinal = `[${motivo}] ${detalhes}`;
-  fecharPendenciaModal();
-  updateStatusJsonp(id, 'Pendente', observacaoFinal);
-};
-
-// =================================================================
-// 3. O MOTOR DO ALARME SONORO E POP-UP
-// =================================================================
-
-// Esta função já estava no seu app.js, agora ela ganha vida!
-window.checkTimeAlarms = (horaAtualStr) => {
-  // Pega só o HH:MM para comparar com o input type="time"
-  const horaMinutoAtual = horaAtualStr.slice(0, 5); 
-  
-  (orders || []).forEach(o => {
-    // Se o pedido tem alarme, a hora bateu, e ainda não tocou hoje
-    if (o.alarme && o.alarme === horaMinutoAtual && !o.alarmeTocado) {
-      o.alarmeTocado = true; // Marca para não ficar apitando a cada segundo
-      
-      // Toca o som (garanta que a função playBeepSound exista no seu código)
-      if(typeof playBeepSound === 'function') playBeepSound();
-      
-      // Mostra a tela de estouro piscando na cara do operador
-      const modal = document.getElementById('snoozeModal');
-      const numDisplay = document.getElementById('modalOrderNum');
-      if (modal && numDisplay) {
-        numDisplay.innerText = `#${o.numero || o.id}`;
-        modal.classList.remove('hidden');
-      }
-    }
-  });
-};
-
-// Se você não tinha o botão fechar do Snooze implementado:
-document.getElementById('btnSnoozeAction')?.addEventListener('click', function() {
-  document.getElementById('snoozeModal').classList.add('hidden');
-  stopAudioAlarm();
-});
-
-// =================================================================
-// 4. ASSINATURA DIGITAL (APP MOTORISTA)
-// =================================================================
-
-// Garante que a aba abra corretamente
-const originalSwitchTab = switchTab;
-window.switchTab = function(which) {
-  originalSwitchTab(which); // Roda sua função antiga
-  
-  const viewMot = document.getElementById('view-motorista');
-  if(viewMot) viewMot.classList.toggle('hidden', which !== 'motorista');
-  
-  const btnMot = document.getElementById('main-mot');
-  if(btnMot) btnMot.className = which === 'motorista' ? 'tab-btn active' : 'tab-btn';
-  
-  if(which === 'motorista') resizeCanvas(); // Ajusta a resolução do desenho no celular
-};
-
-// Lógica de desenho com o dedo na tela
-let canvas2, ctx, desenhando = false;
-
-document.addEventListener("DOMContentLoaded", () => {
-  canvas = document.getElementById('signatureCanvas');
-  if(!canvas) return;
-  ctx = canvas.getContext('2d');
-  
-  // Eventos de Mouse e Touch (Dedo no celular)
-  canvas.addEventListener('mousedown', startPosition);
-  canvas.addEventListener('mouseup', endPosition);
-  canvas.addEventListener('mousemove', draw);
-  canvas.addEventListener('touchstart', startPosition, {passive: true});
-  canvas.addEventListener('touchend', endPosition);
-  canvas.addEventListener('touchmove', draw, {passive: false});
-});
-
-function resizeCanvas() {
-  if(!canvas) return;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#1e293b'; // Cor da caneta azul escuro
-}
-
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  const ev = e.touches ? e.touches[0] : e;
-  return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-}
-
-function startPosition(e) { desenhando = true; draw(e); }
-function endPosition() { desenhando = false; ctx.beginPath(); }
-function draw(e) {
-  if (!desenhando) return;
-  e.preventDefault(); // Impede a tela de rolar enquanto assina
-  const pos = getPos(e);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
-}
-
-window.limparAssinatura = () => {
-  if(ctx && canvas) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-  }
-};
-
-window.enviarComprovante = () => {
-  const pedido = document.getElementById('motPedidoInput').value.trim();
-  const recebedor = document.getElementById('motRecebedor').value.trim();
-  const transportador = document.getElementById('motTransportador').value;
-  
-  if(!pedido || !recebedor) return alert("Preencha o Número do Pedido e o Nome de quem recebeu.");
-  
-  // Transforma o desenho em um texto gigante (Base64) que pode ser salvo na planilha
-  const assinaturaBase64 = canvas.toDataURL('image/png');
-  
-  // Aqui você chama a sua função de atualização do Google Sheets, 
-  // enviando a assinatura e os dados. Por hora, vamos mudar o status do pedido!
-  const msgAudit = `Entregue via: ${transportador} | Recebido por: ${recebedor}`;
-  
-  showLoading(true);
-  const horaLocal = new Date().toLocaleTimeString('pt-BR').slice(0,5);
-  
-  // Reutiliza a URL existente, mas marca como entregue e anota quem recebeu
-  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedido)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
-  
-  jsonpFetch(url, function(){ 
-    showLoading(false); 
-    showToast(`Comprovante do pedido #${pedido} salvo com sucesso!`, 'success', 5000);
-    limparAssinatura();
-    document.getElementById('motPedidoInput').value = '';
-    document.getElementById('motRecebedor').value = '';
-    load(); 
-  });
-};
-// =================================================================
-// 5. LÓGICA DE PRODUÇÃO DO MOTORISTA (DESPACHO E ENTREGAS)
-// =================================================================
-
-window.renderMotorista = () => {
-  const tbodyMot = document.getElementById('table-motorista');
-  if (!tbodyMot) return;
-
-  // Mistura os pedidos normais e Flex para o motorista não perder nenhuma entrega
-  const todosPedidos = [...(typeof orders !== 'undefined' ? orders : []), ...(typeof flexOrders !== 'undefined' ? flexOrders : [])];
-  
-  const emRota = todosPedidos.filter(o => String(o.status_logistica || o.situacao_nome || '').toLowerCase() === 'despachado');
-
-  if (emRota.length === 0) {
-    tbodyMot.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-slate-400 font-bold"><i class="fas fa-box-open text-3xl mb-2 block"></i>Nenhuma entrega em rota no momento.</td></tr>`;
-    return;
-  }
-
-  tbodyMot.innerHTML = emRota.map(o => `
-    <tr class="hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0">
-      <td class="p-3 font-black text-slate-800 text-sm">#${escapeHtml(o.numero || o.id)}</td>
-      <td class="p-3 leading-tight">
-        <span class="font-bold text-slate-700 text-sm">${escapeHtml(o.cliente_nome || o.destinatario || '')}</span><br>
-        <span class="text-[11px] text-slate-400 font-normal"><i class="fas fa-location-dot text-slate-300 mr-1"></i>${escapeHtml(o.endereco_completo || o.endereco || '')}</span>
-      </td>
-      <td class="p-3 text-right">
-        <button onclick="abrirAssinaturaMotorista('${escapeHtml(o.numero || o.id)}')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold text-[11px] shadow-sm transition-all uppercase whitespace-nowrap"><i class="fas fa-signature mr-1"></i> Entregar</button>
-      </td>
-    </tr>
-  `).join('');
-};
-window.prepararDespachoMotorista = (numeroPedido) => {
-  // 1. Truque Visual: Altera TODAS as flags para forçar o pedido a sumir da Logística
-  let achou = false;
-  if (typeof orders !== 'undefined') {
-    const p = orders.find(o => String(o.numero) === String(numeroPedido) || String(o.id) === String(numeroPedido));
-    if (p) { 
-        p.status_logistica = 'Despachado'; 
-        p.situacao_nome = 'Despachado'; // <-- Essa linha faz sumir da Logística!
-        achou = true; 
-    }
-  }
-  if (!achou && typeof flexOrders !== 'undefined') {
-    const p = flexOrders.find(o => String(o.numero) === String(numeroPedido) || String(o.id) === String(numeroPedido));
-    if (p) { 
-        p.status_logistica = 'Despachado'; 
-        p.situacao_nome = 'Despachado'; 
-    }
-  }
-
-  // 2. Transição visual instantânea
-  showToast(`Pedido #${numeroPedido} Despachado com sucesso!`, 'success', 4000);
-  switchTab('motorista');
-  
-  if (typeof renderMotorista === 'function') renderMotorista();
-  if (typeof render === 'function') render(); 
-  
-  // 3. Salva no Banco de Dados Fantasma
-  const url = `${API}?action=updateStatus&id=${encodeURIComponent(numeroPedido)}&status=Despachado&operador=${encodeURIComponent(currentOperator)}&observacao=Saiu%20para%20entrega`;
-  jsonpFetch(url, function() {
-    console.log("Despacho salvo no Google Sheets.");
-  });
-};
-
-window.enviarComprovante = () => {
-  const pedidoId = document.getElementById('motPedidoInput').value.trim();
-  const recebedor = document.getElementById('motRecebedor').value.trim();
-  const transportador = document.getElementById('motTransportador').value;
-  
-  if(!pedidoId || !recebedor) return alert("Por favor, preencha o Nome de quem recebeu a mercadoria.");
-  
-  // 1. Truque visual imediato para mover para 'Entregues'
-  if (typeof orders !== 'undefined') {
-    const pedidoObj = orders.find(o => String(o.numero || o.id) === String(pedidoId));
-    if (pedidoObj) {
-        pedidoObj.status_logistica = 'Entregue';
-        pedidoObj.situacao_nome = 'Entregue'; // <-- Faz o pedido ir para a aba final
-    }
-  }
-  if (typeof flexOrders !== 'undefined') {
-    const pedidoObjFlex = flexOrders.find(o => String(o.numero || o.id) === String(pedidoId));
-    if (pedidoObjFlex) {
-        pedidoObjFlex.status_logistica = 'Entregue';
-        pedidoObjFlex.situacao_nome = 'Entregue';
-    }
-  }
-  
-  showToast(`Entrega #${pedidoId} finalizada com sucesso!`, 'success', 5000);
-  
-  // 2. Esconde o painel de assinatura
-  const form = document.getElementById('form-assinatura-motorista');
-  if (form) form.classList.add('hidden');
-  if (typeof limparAssinatura === 'function') limparAssinatura();
-  
-  // 3. Atualiza as telas
-  if (typeof renderMotorista === 'function') renderMotorista();
-  if (typeof render === 'function') render();
-  
-  // 4. Salvamento Fantasma da Assinatura no Google Sheets
-  const msgAudit = `Entregue via: ${transportador} | Assinado por: ${recebedor}`;
-  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedidoId)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
-  
-  jsonpFetch(url, function(){ 
-     console.log("Comprovante salvo no Google Sheets.");
-  });
-};
-window.abrirAssinaturaMotorista = (numeroPedido) => {
-  const form = document.getElementById('form-assinatura-motorista');
-  if (form) form.classList.remove('hidden'); // Revela o quadro de assinatura
-  
-  const inputPedido = document.getElementById('motPedidoInput');
-  if (inputPedido) inputPedido.value = numeroPedido; // Trava o número do pedido
-
-  const inputRecebedor = document.getElementById('motRecebedor');
-  if (inputRecebedor) {
-    inputRecebedor.value = ''; // Limpa o nome antigo
-    inputRecebedor.focus();
-  }
-
-  if (typeof limparAssinatura === 'function') limparAssinatura();
-  if (typeof resizeCanvas === 'function') resizeCanvas();
-  
-  // Desce a tela suavemente até a assinatura
-  if (form) form.scrollIntoView({ behavior: 'smooth', block: 'end' });
-};
-// =================================================================
-// 6. MOTOR DE ASSINATURA DIGITAL (TOUCH CELULAR E MOUSE)
-// =================================================================
-let canvas, ctx, desenhando = false;
-
-// Inicializa a prancheta de desenho com um pequeno atraso para garantir que a tela carregou
-setTimeout(() => {
-  canvas = document.getElementById('signatureCanvas');
-  if(canvas) {
-    ctx = canvas.getContext('2d');
-    
-    // Suporte para Mouse (Testes no PC)
-    canvas.addEventListener('mousedown', startPosition);
-    canvas.addEventListener('mouseup', endPosition);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseleave', endPosition);
-    
-    // Suporte para Dedo (Celular/Tablet) - O 'passive: false' impede a tela de rolar
-    canvas.addEventListener('touchstart', startPosition, {passive: false});
-    canvas.addEventListener('touchend', endPosition, {passive: false});
-    canvas.addEventListener('touchmove', draw, {passive: false});
-  }
-}, 1000);
-
-// Ajusta a resolução da prancheta na hora que o motorista abre a aba
-window.resizeCanvas = () => {
-  if(!canvas || !ctx) return;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#2563eb'; // Cor da tinta: Azul Escuro
-};
-
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  // Identifica se é dedo (touches) ou mouse (clientX)
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: clientX - rect.left, y: clientY - rect.top };
-}
-
-function startPosition(e) { 
-  if (e.cancelable) e.preventDefault(); // Trava a tela para não rolar
-  desenhando = true; 
-  draw(e); 
-}
-
-function endPosition() { 
-  desenhando = false; 
-  if(ctx) ctx.beginPath(); 
-}
-
-function draw(e) {
-  if (!desenhando || !ctx) return;
-  if (e.cancelable) e.preventDefault(); // Trava a tela enquanto rabisca
-  
-  const pos = getPos(e);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
-}
-
-window.limparAssinatura = () => {
-  if(ctx && canvas) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-  }
-};
