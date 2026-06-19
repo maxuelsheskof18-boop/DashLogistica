@@ -1397,7 +1397,87 @@ window.switchTab = function(which) {
   if(which === 'motorista') resizeCanvas(); // Ajusta a resolução do desenho no celular
 };
 
+// Lógica de desenho com o dedo na tela
+let canvas, ctx, desenhando = false;
 
+document.addEventListener("DOMContentLoaded", () => {
+  canvas = document.getElementById('signatureCanvas');
+  if(!canvas) return;
+  ctx = canvas.getContext('2d');
+  
+  // Eventos de Mouse e Touch (Dedo no celular)
+  canvas.addEventListener('mousedown', startPosition);
+  canvas.addEventListener('mouseup', endPosition);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('touchstart', startPosition, {passive: true});
+  canvas.addEventListener('touchend', endPosition);
+  canvas.addEventListener('touchmove', draw, {passive: false});
+});
+
+function resizeCanvas() {
+  if(!canvas) return;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1e293b'; // Cor da caneta azul escuro
+}
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const ev = e.touches ? e.touches[0] : e;
+  return { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+}
+
+function startPosition(e) { desenhando = true; draw(e); }
+function endPosition() { desenhando = false; ctx.beginPath(); }
+function draw(e) {
+  if (!desenhando) return;
+  e.preventDefault(); // Impede a tela de rolar enquanto assina
+  const pos = getPos(e);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+}
+
+window.limparAssinatura = () => {
+  if(ctx && canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.beginPath();
+  }
+};
+
+window.enviarComprovante = () => {
+  const pedido = document.getElementById('motPedidoInput').value.trim();
+  const recebedor = document.getElementById('motRecebedor').value.trim();
+  const transportador = document.getElementById('motTransportador').value;
+  
+  if(!pedido || !recebedor) return alert("Preencha o Número do Pedido e o Nome de quem recebeu.");
+  
+  // Transforma o desenho em um texto gigante (Base64) que pode ser salvo na planilha
+  const assinaturaBase64 = canvas.toDataURL('image/png');
+  
+  // Aqui você chama a sua função de atualização do Google Sheets, 
+  // enviando a assinatura e os dados. Por hora, vamos mudar o status do pedido!
+  const msgAudit = `Entregue via: ${transportador} | Recebido por: ${recebedor}`;
+  
+  showLoading(true);
+  const horaLocal = new Date().toLocaleTimeString('pt-BR').slice(0,5);
+  
+  // Reutiliza a URL existente, mas marca como entregue e anota quem recebeu
+  const url = `${API}?action=updateStatus&id=${encodeURIComponent(pedido)}&status=Entregue&operador=${encodeURIComponent(currentOperator)}&observacao=${encodeURIComponent(msgAudit)}`;
+  
+  jsonpFetch(url, function(){ 
+    showLoading(false); 
+    showToast(`Comprovante do pedido #${pedido} salvo com sucesso!`, 'success', 5000);
+    limparAssinatura();
+    document.getElementById('motPedidoInput').value = '';
+    document.getElementById('motRecebedor').value = '';
+    load(); 
+  });
+};
 // =================================================================
 // 5. LÓGICA DE PRODUÇÃO DO MOTORISTA (DESPACHO E ENTREGAS)
 // =================================================================
@@ -1524,73 +1604,3 @@ window.abrirAssinaturaMotorista = (numeroPedido) => {
   if (form) form.scrollIntoView({ behavior: 'smooth', block: 'end' });
 };
 // =================================================================
-// 6. MOTOR DE ASSINATURA DIGITAL (TOUCH CELULAR E MOUSE)
-// =================================================================
-let canvas, ctx, desenhando = false;
-
-// Inicializa a prancheta de desenho com um pequeno atraso para garantir que a tela carregou
-setTimeout(() => {
-  canvas = document.getElementById('signatureCanvas');
-  if(canvas) {
-    ctx = canvas.getContext('2d');
-    
-    // Suporte para Mouse (Testes no PC)
-    canvas.addEventListener('mousedown', startPosition);
-    canvas.addEventListener('mouseup', endPosition);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseleave', endPosition);
-    
-    // Suporte para Dedo (Celular/Tablet) - O 'passive: false' impede a tela de rolar
-    canvas.addEventListener('touchstart', startPosition, {passive: false});
-    canvas.addEventListener('touchend', endPosition, {passive: false});
-    canvas.addEventListener('touchmove', draw, {passive: false});
-  }
-}, 1000);
-
-// Ajusta a resolução da prancheta na hora que o motorista abre a aba
-window.resizeCanvas = () => {
-  if(!canvas || !ctx) return;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#2563eb'; // Cor da tinta: Azul Escuro
-};
-
-function getPos(e) {
-  const rect = canvas.getBoundingClientRect();
-  // Identifica se é dedo (touches) ou mouse (clientX)
-  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-  return { x: clientX - rect.left, y: clientY - rect.top };
-}
-
-function startPosition(e) { 
-  if (e.cancelable) e.preventDefault(); // Trava a tela para não rolar
-  desenhando = true; 
-  draw(e); 
-}
-
-function endPosition() { 
-  desenhando = false; 
-  if(ctx) ctx.beginPath(); 
-}
-
-function draw(e) {
-  if (!desenhando || !ctx) return;
-  if (e.cancelable) e.preventDefault(); // Trava a tela enquanto rabisca
-  
-  const pos = getPos(e);
-  ctx.lineTo(pos.x, pos.y);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(pos.x, pos.y);
-}
-
-window.limparAssinatura = () => {
-  if(ctx && canvas) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.beginPath();
-  }
-};
