@@ -1026,3 +1026,150 @@ window.moverParaPendenciaPrompt = function(id){
   const motivo = prompt('Motivo da pendência:');
   if(motivo !== null) updateStatusJsonp(id, 'Pendente', motivo || '');
 };
+// =======================================================
+// CORREÇÃO DO MAPA E LÓGICA DE ROTAS INTELIGENTES
+// Cole no final do seu app.js original
+// =======================================================
+
+// 1. Devolvemos a função do Mapa que estava faltando
+function initMap() {
+    if (window._vesco_map_inited) return;
+    window._vesco_map_inited = true;
+
+    try {
+        if(document.getElementById('map')) { map = L.map('map').setView([-23.55052, -46.633308], 11); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png').addTo(map); markerCluster = L.markerClusterGroup(); map.addLayer(markerCluster); }
+        if(document.getElementById('map-flex')) { mapFlex = L.map('map-flex').setView([-23.55052, -46.633308], 11); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png').addTo(mapFlex); markerClusterFlex = L.markerClusterGroup(); mapFlex.addLayer(markerClusterFlex); }
+        if(document.getElementById('map-rotas')) { mapRotas = L.map('map-rotas').setView([-23.55052, -46.633308], 11); L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png').addTo(mapRotas); markerClusterRotas = L.markerClusterGroup(); mapRotas.addLayer(markerClusterRotas); }
+    } catch(e) { console.warn("Erro ao iniciar mapas:", e); }
+}
+
+// 2. Lógica das Rotas
+let routeSelection = new Set();
+let routeEligible = [];
+
+function renderRotas() {
+  routeEligible = [];
+  const pushEligible = (o, type) => {
+     const st = String(o.status_logistica || o.situacao_nome || o.status || '').toLowerCase();
+     if(st !== 'entregue' && st !== 'despachado' && String(o.numero || '').trim() !== '') {
+         o._routeType = type;
+         routeEligible.push(o);
+     }
+  };
+  
+  if (typeof orders !== 'undefined') orders.forEach(o => pushEligible(o, 'ERP'));
+  if (typeof flexOrders !== 'undefined') flexOrders.forEach(o => pushEligible(o, 'FLEX'));
+
+  const tbodyRotas = document.getElementById('table-rotas');
+  if(tbodyRotas) {
+     if(routeEligible.length === 0) {
+        tbodyRotas.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-slate-400 font-semibold">Nenhum pedido disponível para rota.</td></tr>`;
+     } else {
+        tbodyRotas.innerHTML = routeEligible.map((o) => {
+           const id = escapeHtml(String(o.id || o.numero));
+           const ecom = typeof getEcomNum === 'function' ? escapeHtml(normalizeEcomNumber(getEcomNum(o))) : '';
+           const checked = routeSelection.has(id) ? 'checked' : '';
+           const typeBadge = o._routeType === 'FLEX' 
+              ? '<span class="bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-bold">FLEX</span>' 
+              : '<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] font-bold">ERP</span>';
+           
+           return `
+             <tr class="hover:bg-slate-50 cursor-pointer ${checked ? 'bg-purple-50' : ''} transition-colors" onclick="toggleRouteOrder('${id}')">
+                <td class="p-2.5 text-center" onclick="event.stopPropagation()">
+                   <input type="checkbox" class="w-4 h-4 accent-purple-600 rounded cursor-pointer" ${checked} onchange="toggleRouteOrder('${id}')">
+                </td>
+                <td class="p-2.5">
+                   <div class="font-bold text-slate-800 text-xs">#${escapeHtml(o.numero)}</div>
+                   <div class="text-[10px] text-slate-400 mt-0.5">${ecom || '—'}</div>
+                </td>
+                <td class="p-2.5">
+                   <div class="font-bold text-slate-700 text-[11px]">${escapeHtml(o.cliente_nome)}</div>
+                   <div class="text-[10px] text-slate-500 truncate max-w-[220px] mt-0.5" title="${escapeHtml(o.endereco_completo)}">${escapeHtml(o.endereco_completo)}</div>
+                </td>
+                <td class="p-2.5 text-right">
+                   ${typeBadge}
+                   <div class="mt-1 text-[9px] font-bold text-slate-400 uppercase">${escapeHtml(o.status_logistica || o.situacao_nome || o.situacao || 'A Separar')}</div>
+                </td>
+             </tr>
+           `;
+        }).join('');
+     }
+  }
+  
+  const countEl = document.getElementById('rota-count');
+  if(countEl) countEl.innerText = routeSelection.size;
+  plotRotasMap();
+}
+
+function plotRotasMap() {
+  if(!window.markerClusterRotas || !window.mapRotas) return;
+  markerClusterRotas.clearLayers();
+  
+  routeEligible.forEach(item => {
+      const coords = typeof getCoords === 'function' ? getCoords(item) : null;
+      if(coords) {
+          const id = String(item.id || item.numero);
+          const isSelected = routeSelection.has(id);
+          const color = isSelected ? '#9333ea' : '#94a3b8'; 
+          const svgHtml = `<svg width="${isSelected?34:26}" height="${isSelected?34:26}" viewBox="0 0 24 24"><path d="M12 2C8.686 2 6 4.686 6 8c0 4.418 6 12 6 12s6-7.582 6-12c0-3.314-2.686-6-6-6z" fill="${color}" stroke="#fff"/></svg>`;
+          const icon = L.divIcon({ html: svgHtml, className: '', iconSize: [isSelected?34:26, isSelected?34:26], iconAnchor: [isSelected?17:13, isSelected?34:26] });
+          const m = L.marker([coords.lat, coords.lon], { icon }).bindPopup(`<div class='p-1 font-sans text-center'><b class='text-[13px] ${isSelected ? 'text-purple-600' : 'text-slate-600'}'>#${escapeHtml(item.numero)}</b><br><span class='text-xs text-slate-700 font-semibold'>${escapeHtml(item.cliente_nome)}</span></div>`);
+          m.on('click', () => { toggleRouteOrder(id); });
+          markerClusterRotas.addLayer(m);
+      }
+  });
+  
+  if(routeSelection.size > 0 && markerClusterRotas.getLayers().length > 0) {
+      const bounds = L.featureGroup(markerClusterRotas.getLayers()).getBounds();
+      if(bounds.isValid()) mapRotas.fitBounds(bounds.pad(0.1), { maxZoom: 15 });
+  }
+}
+
+window.toggleRouteOrder = function(id) { if(routeSelection.has(id)) routeSelection.delete(id); else routeSelection.add(id); renderRotas(); };
+window.selectAllRoute = function() { routeEligible.forEach(o => routeSelection.add(String(o.id || o.numero))); renderRotas(); };
+window.clearRouteSelection = function() { routeSelection.clear(); renderRotas(); };
+
+window.sugerirRotasInteligentes = function() {
+    if (!routeEligible || routeEligible.length === 0) return alert('Não há pedidos disponíveis para roteirizar.');
+    routeSelection.clear();
+    let count = 0;
+    routeEligible.forEach(o => { if (count < 12) { routeSelection.add(String(o.id || o.numero)); count++; } });
+    renderRotas();
+    if(typeof showToast === 'function') showToast('Roteiro sugerido com sucesso!', 'success'); else alert('Roteiro sugerido com sucesso!');
+};
+
+window.gerarRotaWhatsApp = function() {
+  if(routeSelection.size === 0) return alert('Selecione ao menos um pedido para a rota.');
+  const selecionados = routeEligible.filter(o => routeSelection.has(String(o.id || o.numero)));
+  let text = `🚚 *ROTA DE ENTREGA - VESCO*\n\n`;
+  selecionados.forEach((s, i) => {
+    const end = escapeHtml(s.endereco_completo || 'Endereço não informado');
+    const obs = escapeHtml(s.instrucao_entrega || s.forma_pagamento || '');
+    const tipo = s._routeType === 'FLEX' ? '[FLEX] ' : '';
+    text += `*${i+1}. Pedido #${s.numero}* ${tipo}\n👤 ${s.cliente_nome}\n📍 ${end}\n💰 ${obs}\n\n`;
+  });
+  text += `*Total de Pacotes: ${selecionados.length}*`;
+  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+};
+
+window.gerarRotaMaps = function() {
+  if(routeSelection.size === 0) return alert('Selecione ao menos um pedido para a rota.');
+  const selecionados = routeEligible.filter(o => routeSelection.has(String(o.id || o.numero)));
+  const comCoords = selecionados.map(o => typeof getCoords === 'function' ? getCoords(o) : null).filter(c => c !== null);
+  if(comCoords.length === 0) return alert('Nenhum pedido possui coordenadas válidas para o GPS.');
+  if(comCoords.length > 10) return alert('O Google Maps aceita no máximo 10 paradas por link.');
+  const dest = comCoords[comCoords.length - 1];
+  let url = `http://googleusercontent.com/maps.google.com/maps?saddr=${comCoords[0].lat},${comCoords[0].lon}&daddr=${dest.lat},${dest.lon}`;
+  if(comCoords.length > 2) {
+      const waypoints = comCoords.slice(1, comCoords.length - 1).map(c => `${c.lat},${c.lon}`).join('+to:');
+      url += `+to:${waypoints}`;
+  }
+  window.open(url, '_blank');
+};
+
+// Vincula a renderização da rota à função global render() que você já tem
+const roteirizador_originalRender = typeof render === 'function' ? render : function(){};
+window.render = function() {
+    roteirizador_originalRender();
+    renderRotas();
+};
