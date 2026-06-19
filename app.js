@@ -1603,7 +1603,29 @@ window.abrirAssinaturaMotorista = (numeroPedido) => {
   // Desce a tela suavemente até a assinatura
   if (form) form.scrollIntoView({ behavior: 'smooth', block: 'end' });
 };
+// =================================================================
+// 6. MOTOR DE ASSINATURA DIGITAL (TOUCH CELULAR E MOUSE)
+// =================================================================
+let canvas, ctx, desenhando = false;
 
+// Inicializa a prancheta de desenho com um pequeno atraso para garantir que a tela carregou
+setTimeout(() => {
+  canvas = document.getElementById('signatureCanvas');
+  if(canvas) {
+    ctx = canvas.getContext('2d');
+    
+    // Suporte para Mouse (Testes no PC)
+    canvas.addEventListener('mousedown', startPosition);
+    canvas.addEventListener('mouseup', endPosition);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseleave', endPosition);
+    
+    // Suporte para Dedo (Celular/Tablet) - O 'passive: false' impede a tela de rolar
+    canvas.addEventListener('touchstart', startPosition, {passive: false});
+    canvas.addEventListener('touchend', endPosition, {passive: false});
+    canvas.addEventListener('touchmove', draw, {passive: false});
+  }
+}, 1000);
 
 // Ajusta a resolução da prancheta na hora que o motorista abre a aba
 window.resizeCanvas = () => {
